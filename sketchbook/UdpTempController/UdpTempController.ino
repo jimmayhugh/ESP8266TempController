@@ -17,8 +17,8 @@
 #include <stdint.h>
 
 int status = WL_IDLE_STATUS;
-const char* ssid = "GMJLinksys";  //  your network SSID (name)
-const char* pass = "ckr7518t";       // your network password
+const char* ssid = "SSID";  //  your network SSID (name)
+const char* pass = "passwd";       // your network password
 // const char* response = "OK\n";
 
 uint16_t localPort = 2652;      // local port to listen for UDP packets
