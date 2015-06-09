@@ -1,5 +1,5 @@
 /*
-UdpTempController - scanChips.ino
+UdpTempController - setState.ino
 
 Version 0.0.2
 Last Modified 06/09/2015
@@ -30,49 +30,18 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-void scanChips(void)
+void setState(uint8_t x, uint8_t state)
 {
-  if ( !ds.search(chip[chipCnt])) {
-    Serial.println("No more addresses.");
-    Serial.println();
-    ds.reset_search();
-    delay(250);
-    chipCnt = 0;
-    return;
-  }
-  
-  Serial.print("ROM =");
-  for( i = 0; i < 8; i++)
+  ds.reset();
+  ds.select(chip[x]);
+  ds.write(ds2406MemWr);
+  ds.write(ds2406AddLow);
+  ds.write(ds2406AddHi);
+  ds.write(state);
+  for ( int i = 0; i < 6; i++)
   {
-    Serial.write(' ');
-    Serial.print(chip[chipCnt][i], HEX);
+    data[i] = ds.read();
   }
-
-  if (ds.crc8(chip[chipCnt], 7) != chip[chipCnt][7])
-  {
-      Serial.println("CRC is not valid!");
-      return;
-  }
-
-  Serial.println();
- 
-  // the first ROM byte indicates which chip
-  switch (chip[chipCnt][0]) {
-    case ds18b20ID:
-      Serial.println("  Chip = DS18B20");
-      getTemp(chipCnt);
-      break;
-
-    case ds2406ID:
-      Serial.println("  Chip = DS2406+");
-      getState(chipCnt);
-      break;
-
-    default:
-      Serial.println("Device is not a valid family device.");
-      return;
-  } 
-
-  chipCnt++;
+  ds.write(ds2406End);
+  ds.reset();
 }
-
