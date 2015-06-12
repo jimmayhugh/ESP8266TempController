@@ -36,19 +36,25 @@ void findChips(void)
   while(1)
   {
     if ( !ds.search(chip[chipCnt])) {
-      Serial.println("No more addresses.");
-      Serial.println();
+      if(setDebug > 0)
+      {
+        Serial.println("No more addresses.");
+        Serial.println();
+      }
       ds.reset_search();
       delay(250);
       chipCnt = 0;
       return;
     }
     
-    Serial.print("ROM =");
-    for( i = 0; i < 8; i++)
+    if(setDebug > 0)
     {
-      Serial.write(' ');
-      Serial.print(chip[chipCnt][i], HEX);
+      Serial.print("ROM =");
+      for( i = 0; i < 8; i++)
+      {
+        Serial.write(' ');
+        Serial.print(chip[chipCnt][i], HEX);
+      }
     }
 
     if (ds.crc8(chip[chipCnt], 7) != chip[chipCnt][7])
@@ -71,9 +77,12 @@ void findChips(void)
       ds.select(chip[chipCnt]);
       ds.write(0x48); // copy scratchpad to EEPROM;
       delay(5);
-      Serial.print("chip[");
-      Serial.print(chipCnt);
-      Serial.println("] resolution set to 9-bit");
+      if(setDebug > 0)
+      {
+        Serial.print("chip[");
+        Serial.print(chipCnt);
+        Serial.println("] resolution set to 9-bit");
+      }
     }
     chipCnt++;
   }

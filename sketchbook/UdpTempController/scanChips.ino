@@ -38,12 +38,18 @@ void scanChips(void)
     switch (chip[chipCnt][0])
     {
       case ds18b20ID:
-        Serial.println("  Chip = DS18B20");
+        if(setDebug > 0)
+        {
+          Serial.println("  Chip = DS18B20");
+        }
         getTemp(chipCnt);
         break;
 
       case ds2406ID:
-        Serial.println("  Chip = DS2406+");
+        if(setDebug > 0)
+        {
+          Serial.println("  Chip = DS2406+");
+        }
         getState(chipCnt);
         break;
 

@@ -9,7 +9,8 @@ V0.0.3 - added upper and lower temp control to UDP commands
          added updateState.ino
 
 V0.0.4 - added findChips.ino to discover chips and set DS18B20
-         to 9-bit resolution
+          to 9-bit resolution
+         added setDebug for serial debug output 0 = no debug, 1 or higher = debug
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -56,12 +57,15 @@ int status = WL_IDLE_STATUS;
 const char* ssid = "SSID";         // your network SSID (name)
 const char* pass = "PASSWD";       // your network password
 
+uint8_t setDebug = 0;
+
 uint16_t localPort = 2652;      // local port to listen for UDP packets
 
 char packetBuffer[512]; //buffer to hold incoming and outgoing packets
 char lcdBuffer[21];
 
-int16_t noBytes, fahrenheit, celsius, packetCnt, delayVal = 100, sDelayVal = 1000, cDelayVal = 260;
+int16_t noBytes, fahrenheit, celsius, packetCnt;
+int16_t delayVal = 100, sDelayVal = 1000, cDelayVal = 250;
 int16_t lowerC, lowerF, upperC, upperF;
 uint32_t lowerDelay, upperDelay;
 uint8_t const lcdChars = 20;
@@ -163,7 +167,10 @@ void setup(void)
   Serial.println("mDNS responder started");
 
 
-  printWifiStatus();
+  if(setDebug > 0)
+  {
+    printWifiStatus();
+  }
 
   Serial.println("Connected to wifi");
   Serial.print("Udp server started at port ");
@@ -178,19 +185,21 @@ void loop(void)
 
   scanChips();
   
-  for(uint8_t b = 0; b < 3; b++)
+  if(setDebug > 0)
   {
-    Serial.print("chip[");
-    Serial.print(b);
-    Serial.print("] =");
-    for( i = 0; i < 8; i++)
+    for(uint8_t b = 0; b < 3; b++)
     {
-      Serial.write(' ');
-      Serial.print(chip[b][i], HEX);
+      Serial.print("chip[");
+      Serial.print(b);
+      Serial.print("] =");
+      for( i = 0; i < 8; i++)
+      {
+        Serial.write(' ');
+        Serial.print(chip[b][i], HEX);
+      }
+      Serial.println();
     }
-    Serial.println();
   }
-  
   updateState();
   
   updateLCD();

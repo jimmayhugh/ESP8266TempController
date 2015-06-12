@@ -34,26 +34,32 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 void processUDP(void)
 {
-  Serial.print(millis() / 1000);
-  Serial.print(":Packet of ");
-  Serial.print(noBytes);
-  Serial.print(" received from ");
-  Serial.print(Udp.remoteIP());
-  Serial.print(":");
-  Serial.println(Udp.remotePort());
+  if(setDebug > 0)
+  {
+    Serial.print(millis() / 1000);
+    Serial.print(":Packet of ");
+    Serial.print(noBytes);
+    Serial.print(" received from ");
+    Serial.print(Udp.remoteIP());
+    Serial.print(":");
+    Serial.println(Udp.remotePort());
+  }
   
   // We've received a packet, read the data from it
   Udp.read(packetBuffer,noBytes); // read the packet into the buffer
 
   // display the packet contents in HEX
-  for (int i=1;i<=noBytes;i++)
+  if(setDebug > 0)
   {
-    Serial.print(packetBuffer[i-1],HEX);
-    if (i % 32 == 0)
+    for (int i=1;i<=noBytes;i++)
     {
-      Serial.println();
-    }else Serial.print(' ');
-  } // end for
+      Serial.print(packetBuffer[i-1],HEX);
+      if (i % 32 == 0)
+      {
+        Serial.println();
+      }else Serial.print(' ');
+    } // end for
+  }
 
   switch(packetBuffer[0])
   {
@@ -66,7 +72,6 @@ void processUDP(void)
       }else{
         setState(1, ds2406PIOAoff);
         packetCnt = sprintf(packetBuffer, "%s", "Turning LED A OFF");
-        Serial.println("Turning LED A OFF");
       }
       break;
     }
@@ -153,18 +158,6 @@ void processUDP(void)
       }else{
         packetCnt = sprintf(packetBuffer, "Invalid Option - Upper value is %d F, %d C", upperF, upperC);
       }
-/*
-      if(packetBuffer[1] == 'C')
-      {
-        upperC = atoi((char *) &packetBuffer[2]);
-        upperF = (((upperC * 5) / 9) + 32); 
-        packetCnt = sprintf(packetBuffer, "Upper value set to %d C, %d F", upperC, upperF);
-      }else{
-        upperF = atoi((char *) &packetBuffer[2]);
-        upperC = (((upperF - 32) * 5) / 9); 
-        packetCnt = sprintf(packetBuffer, "Upper value set to %d F, %d C", upperF, upperC);
-      }
-*/
       break;
     }
 

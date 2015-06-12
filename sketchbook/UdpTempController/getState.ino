@@ -50,22 +50,25 @@ uint16_t chipCRCval, chipBufferCRC;
   chipCRCval = ~(ds.crc16(data, 11)) & 0xFFFF;
   chipBufferCRC = ((data[12] << 8) | data[11]);
   
-  Serial.print("Data = ");
-  for(int i = 3; i <  13; i++)
+  if(setDebug > 0)
   {
-    if(data[i] < 0x0f)
+    Serial.print("Data = ");
+    for(int i = 3; i <  13; i++)
     {
-      Serial.print("0x0");
-    }else{
-      Serial.print("0x");
+      if(data[i] < 0x0f)
+      {
+        Serial.print("0x0");
+      }else{
+        Serial.print("0x");
+      }
+      Serial.print(data[i], HEX);
+      Serial.print(", ");    
     }
-    Serial.print(data[i], HEX);
-    Serial.print(", ");    
+    Serial.print("chipCRCval = 0x");
+    Serial.print(chipCRCval, HEX);
+    Serial.print(", chipBufferCRC = 0x");
+    Serial.print(chipBufferCRC, HEX);
   }
-  Serial.print("chipCRCval = 0x");
-  Serial.print(chipCRCval, HEX);
-  Serial.print(", chipBufferCRC = 0x");
-  Serial.print(chipBufferCRC, HEX);
 
   if(data[10] & dsPIO_A)
   {
@@ -73,9 +76,13 @@ uint16_t chipCRCval, chipBufferCRC;
   }else{
     chipStatus[chipCnt] = switchStatusON;
   }
-  Serial.print(", chipStatus[");
-  Serial.print(chipCnt);
-  Serial.print("] = ");
-  Serial.println( (char) chipStatus[chipCnt] );
+
+  if(setDebug > 0)
+  {
+    Serial.print(", chipStatus[");
+    Serial.print(chipCnt);
+    Serial.print("] = ");
+    Serial.println( (char) chipStatus[chipCnt] );
+  }
 }
 

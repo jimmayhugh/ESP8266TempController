@@ -32,7 +32,10 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 void getTemp(uint8_t x)
 {
-  Serial.println("Getting Temp");
+  if(setDebug > 0)
+  {
+    Serial.println("Getting Temp");
+  }
   ds.reset();
   ds.select(chip[x]);
   ds.write(0x44, 1);        // start conversion, with parasite power on at the end
@@ -44,27 +47,29 @@ void getTemp(uint8_t x)
   ds.select(chip[x]);
   ds.write(0xBE);         // Read Scratchpad
 
-  Serial.print("  Data = ");
-  
   for ( i = 0; i < 9; i++)            // we need 9 int8_ts
   {
     data[i] = ds.read();
   }
-  
-  for ( i = 0; i < 9; i++)            // we need 9 int8_ts
+
+  if(setDebug > 0)
   {
-    if(data[i] < 0x0f)
+    Serial.print("  Data = ");  
+    for ( i = 0; i < 9; i++)            // we need 9 int8_ts
     {
-      Serial.print("0x0");
-    }else{
-      Serial.print("0x");
+      if(data[i] < 0x0f)
+      {
+        Serial.print("0x0");
+      }else{
+        Serial.print("0x");
+      }
+      Serial.print(data[i], HEX);
+      Serial.print(", ");
     }
-    Serial.print(data[i], HEX);
-    Serial.print(", ");
+    Serial.print("CRC=");
+    Serial.print(ds.crc8(data, 8), HEX);
+    Serial.println();
   }
-  Serial.print("CRC=");
-  Serial.print(ds.crc8(data, 8), HEX);
-  Serial.println();
 
   // Convert the data to actual temperature
   // because the result is a 16 bit signed integer, it should
@@ -83,10 +88,13 @@ void getTemp(uint8_t x)
   celsius = raw / 16;
   fahrenheit = ((celsius * 9)/5) + 32.0;
   
-  Serial.print("  Temperature = ");
-  Serial.print(celsius);
-  Serial.print(" Celsius, ");
-  Serial.print(fahrenheit);
-  Serial.println(" Fahrenheit");
+  if(setDebug > 0)
+  {
+    Serial.print("  Temperature = ");
+    Serial.print(celsius);
+    Serial.print(" Celsius, ");
+    Serial.print(fahrenheit);
+    Serial.println(" Fahrenheit");
+  }
 }
 

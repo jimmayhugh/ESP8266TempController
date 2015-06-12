@@ -32,7 +32,10 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 void updateLCD(void)
 {
-  Serial.println("Writing to LCD");
+  if(setDebug > 0)
+  {
+    Serial.println("Writing to LCD");
+  }
   lcd.home();
   IPAddress ip = WiFi.localIP();
   lcd.print(ip);
@@ -49,5 +52,8 @@ void updateLCD(void)
   sprintf(lcdBuffer, "Switch1:%c Switch2:%c", chipStatus[1], chipStatus[2]);
   lcd.print(lcdBuffer);
   delay(delayVal);
-  Serial.println("Finished writing to LCD");
+  if(setDebug > 0)
+  {
+    Serial.println("Finished writing to LCD");
+  }
 }
