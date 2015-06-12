@@ -1,9 +1,11 @@
 /*
 UdpTempController - processUDP.ino
 
-Version 0.0.2
-Last Modified 06/09/2015
+Version 0.0.3
+Last Modified 06/11/2015
 By Jim Mayhugh
+
+V0.0.3 - Added Upper (U) and Lower (L) Temp values
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -79,6 +81,90 @@ void processUDP(void)
         setState(2, ds2406PIOAoff);
         packetCnt = sprintf(packetBuffer, "%s", "Turning LED B OFF");
       }
+      break;
+    }
+
+    case 'L':
+    {
+      if( (isdigit(packetBuffer[2]) ) ||
+          ((packetBuffer[2] == '-') && isdigit(packetBuffer[3]))
+        )
+      { 
+        switch(packetBuffer[1])
+        {
+          case 'C':
+          {
+            lowerC = atoi((char *) &packetBuffer[2]);
+            lowerF = (((lowerC * 9) / 5) + 32); 
+            packetCnt = sprintf(packetBuffer, "Lower value set to %d C, %d F", lowerC, lowerF);
+            break;
+          }
+
+          case 'F':
+          {
+            lowerF = atoi((char *) &packetBuffer[2]);
+            lowerC = (((lowerF - 32) * 5) / 9); 
+            packetCnt = sprintf(packetBuffer, "Lower value set to %d F, %d C", lowerF, lowerC);
+            break;
+          }
+          
+          default:
+          {
+            packetCnt = sprintf(packetBuffer, "Invalid Option - Lower value is %d F, %d C", lowerF, lowerC);
+            break;
+          }
+        }
+      }else{
+        packetCnt = sprintf(packetBuffer, "Invalid Option - Lower value is %d F, %d C", lowerF, lowerC);
+      }
+      break;
+    }
+
+    case 'U':
+    {
+      if( (isdigit(packetBuffer[2]) ) ||
+          ((packetBuffer[2] == '-') && isdigit(packetBuffer[3]))
+        )
+      { 
+        switch(packetBuffer[1])
+        {
+          case 'C':
+          {
+            upperC = atoi((char *) &packetBuffer[2]);
+            upperF = (((upperC * 9) / 5) + 32); 
+            packetCnt = sprintf(packetBuffer, "Upper value set to %d C, %d F", upperC, upperF);
+            break;
+          }
+
+          case 'F':
+          {
+            upperF = atoi((char *) &packetBuffer[2]);
+            upperC = (((upperF - 32) * 5) / 9); 
+            packetCnt = sprintf(packetBuffer, "Upper value set to %d F, %d C", upperF, upperC);
+            break;
+          }
+          
+          default:
+          {
+            packetCnt = sprintf(packetBuffer, "Invalid Option - Upper value is %d F, %d C", upperF, upperC);
+            break;
+          }
+        }
+      }else{
+        packetCnt = sprintf(packetBuffer, "Invalid Option - Upper value is %d F, %d C", upperF, upperC);
+      }
+/*
+      if(packetBuffer[1] == 'C')
+      {
+        upperC = atoi((char *) &packetBuffer[2]);
+        upperF = (((upperC * 5) / 9) + 32); 
+        packetCnt = sprintf(packetBuffer, "Upper value set to %d C, %d F", upperC, upperF);
+      }else{
+        upperF = atoi((char *) &packetBuffer[2]);
+        upperC = (((upperF - 32) * 5) / 9); 
+        packetCnt = sprintf(packetBuffer, "Upper value set to %d F, %d C", upperF, upperC);
+      }
+*/
       break;
     }
 

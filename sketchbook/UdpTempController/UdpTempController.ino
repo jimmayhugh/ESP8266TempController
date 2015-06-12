@@ -1,9 +1,12 @@
 /*
 UdpTempController.ino
 
-Version 0.0.2
-Last Modified 06/09/2015
+Version 0.0.3
+Last Modified 06/12/2015
 By Jim Mayhugh
+
+V0.0.3 - added upper and lower temp control to UDP commands
+         added updateState.ino
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -47,8 +50,8 @@ Configuration :
 #include <stdint.h>
 
 int status = WL_IDLE_STATUS;
-const char* ssid = "SSID";         // your network SSID (name)
-const char* pass = "PASSWD";       // your network password
+const char* ssid = "GMJLinksys";         // your network SSID (name)
+const char* pass = "ckr7518t";       // your network password
 
 uint16_t localPort = 2652;      // local port to listen for UDP packets
 
@@ -56,14 +59,16 @@ char packetBuffer[512]; //buffer to hold incoming and outgoing packets
 char lcdBuffer[21];
 
 int16_t noBytes, fahrenheit, celsius, packetCnt, delayVal = 100, sDelayVal = 1000;
+int16_t lowerC, lowerF, upperC, upperF;
+uint32_t lowerDelay, upperDelay;
 uint8_t const lcdChars = 20;
 uint8_t const lcdRows  = 4;
 int8_t i;
 int8_t present = 0;
 uint8_t data[15];
 uint8_t chip[4][8];
-uint8_t chipCnt = 0;
 uint8_t chipStatus[3];
+uint8_t chipCnt = 0;
 
 // LCD Stuff
 
@@ -183,6 +188,8 @@ void loop(void)
     }
     Serial.println();
   }
+  
+  updateState();
   
   updateLCD();
 
