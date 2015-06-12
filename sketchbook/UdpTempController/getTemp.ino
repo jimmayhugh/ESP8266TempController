@@ -37,10 +37,10 @@ void getTemp(uint8_t x)
   ds.select(chip[x]);
   ds.write(0x44, 1);        // start conversion, with parasite power on at the end
   
-  delay(1000);     // maybe 750ms is enough, maybe not
+  delay(cDelayVal);     // 9-bit resolution, maybe 250ms is enough, maybe not
   // we might do a ds.depower() here, but the reset will take care of it.
   
-  present = ds.reset();
+  ds.reset();
   ds.select(chip[x]);
   ds.write(0xBE);         // Read Scratchpad
 

@@ -1,12 +1,15 @@
 /*
 UdpTempController.ino
 
-Version 0.0.3
+Version 0.0.4
 Last Modified 06/12/2015
 By Jim Mayhugh
 
 V0.0.3 - added upper and lower temp control to UDP commands
          added updateState.ino
+
+V0.0.4 - added findChips.ino to discover chips and set DS18B20
+         to 9-bit resolution
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -50,15 +53,15 @@ Configuration :
 #include <stdint.h>
 
 int status = WL_IDLE_STATUS;
-const char* ssid = "GMJLinksys";         // your network SSID (name)
-const char* pass = "ckr7518t";       // your network password
+const char* ssid = "SSID";         // your network SSID (name)
+const char* pass = "PASSWD";       // your network password
 
 uint16_t localPort = 2652;      // local port to listen for UDP packets
 
 char packetBuffer[512]; //buffer to hold incoming and outgoing packets
 char lcdBuffer[21];
 
-int16_t noBytes, fahrenheit, celsius, packetCnt, delayVal = 100, sDelayVal = 1000;
+int16_t noBytes, fahrenheit, celsius, packetCnt, delayVal = 100, sDelayVal = 1000, cDelayVal = 260;
 int16_t lowerC, lowerF, upperC, upperF;
 uint32_t lowerDelay, upperDelay;
 uint8_t const lcdChars = 20;
@@ -83,7 +86,6 @@ ESP8266LCD lcd = ESP8266LCD(7);
 WiFiUDP Udp;
 
 // OneWire Stuff
-// OneWire Setup;
 // Family codes
 const uint8_t t3tcID         = 0xAA; // Teensy 3.0 1-wire slave with MAX31855 K-type Thermocouple chip
 const uint8_t dsLCD          = 0x47; // Teensy 3.x 1-wire slave 4x20 HD44780 LCD
@@ -167,7 +169,7 @@ void setup(void)
   Serial.print("Udp server started at port ");
   Serial.println(localPort);
   Udp.begin(localPort);
-  
+  findChips();
 }
 
 void loop(void)

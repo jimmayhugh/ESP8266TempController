@@ -1,7 +1,7 @@
 /*
-UdpTempController - scanChips.ino
+UdpTempController - findChips.ino
 
-Version 0.0.3
+Version 0.0.1
 Last Modified 06/12/2015
 By Jim Mayhugh
 
@@ -30,28 +30,51 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-void scanChips(void)
+void findChips(void)
 {
   chipCnt = 0;
-  do{
-    // the first ROM byte indicates which chip
-    switch (chip[chipCnt][0])
+  while(1)
+  {
+    if ( !ds.search(chip[chipCnt])) {
+      Serial.println("No more addresses.");
+      Serial.println();
+      ds.reset_search();
+      delay(250);
+      chipCnt = 0;
+      return;
+    }
+    
+    Serial.print("ROM =");
+    for( i = 0; i < 8; i++)
     {
-      case ds18b20ID:
-        Serial.println("  Chip = DS18B20");
-        getTemp(chipCnt);
-        break;
+      Serial.write(' ');
+      Serial.print(chip[chipCnt][i], HEX);
+    }
 
-      case ds2406ID:
-        Serial.println("  Chip = DS2406+");
-        getState(chipCnt);
-        break;
-
-      default:
-        Serial.println("Device is not a valid family device.");
+    if (ds.crc8(chip[chipCnt], 7) != chip[chipCnt][7])
+    {
+        Serial.println("CRC is not valid!");
         return;
-     }
-     chipCnt++;
-  }while(chipCnt < 3);
-}
+    }
 
+    Serial.println();
+    if(chip[chipCnt][0] == ds18b20ID) // set DS18B20 to 9-bit resolution
+    {
+      ds.reset();
+      ds.select(chip[chipCnt]);
+      ds.write(0x4E); // write to scratchpad;
+      ds.write(0x00); // low alarm
+      ds.write(0x00); // high alarm
+      ds.write(0x1F); // configuration register - 9 bit accuracy (0.5deg C)
+      delay(5);
+      ds.reset();
+      ds.select(chip[chipCnt]);
+      ds.write(0x48); // copy scratchpad to EEPROM;
+      delay(5);
+      Serial.print("chip[");
+      Serial.print(chipCnt);
+      Serial.println("] resolution set to 9-bit");
+    }
+    chipCnt++;
+  }
+}
