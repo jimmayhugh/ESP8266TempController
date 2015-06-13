@@ -32,17 +32,20 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 void updateState(void)
 {
-  if(fahrenheit >= upperF)
+  if(mode == 'A')
   {
-    setState(1, ds2406PIOAon); // cool things off
-  }else{
-    setState(1, ds2406PIOAoff);
-  }
+    if(fahrenheit >= upperF)
+    {
+      setState(1, ds2406PIOAon); // cool things off
+    }else{
+      setState(1, ds2406PIOAoff);
+    }
 
-  if(fahrenheit <= lowerF)
-  {
-    setState(2, ds2406PIOAon); // heat things up
-  }else{
-    setState(2, ds2406PIOAoff);
+    if(fahrenheit <= lowerF)
+    {
+      setState(2, ds2406PIOAon); // heat things up
+    }else{
+      setState(2, ds2406PIOAoff);
+    }
   }
 }

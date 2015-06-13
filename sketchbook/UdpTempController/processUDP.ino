@@ -100,7 +100,8 @@ void processUDP(void)
           case 'C':
           {
             lowerC = atoi((char *) &packetBuffer[2]);
-            lowerF = (((lowerC * 9) / 5) + 32); 
+            lowerF = (((lowerC * 9) / 5) + 32);
+            updateEEPROM(EELowerC);
             packetCnt = sprintf(packetBuffer, "Lower value set to %d C, %d F", lowerC, lowerF);
             break;
           }
@@ -109,6 +110,7 @@ void processUDP(void)
           {
             lowerF = atoi((char *) &packetBuffer[2]);
             lowerC = (((lowerF - 32) * 5) / 9); 
+            updateEEPROM(EELowerF);
             packetCnt = sprintf(packetBuffer, "Lower value set to %d F, %d C", lowerF, lowerC);
             break;
           }
@@ -125,6 +127,34 @@ void processUDP(void)
       break;
     }
 
+    case 'M':
+    {
+      switch(packetBuffer[1])
+      {
+        case 'A':
+        {
+          mode = 'A';
+          packetCnt = sprintf(packetBuffer, "Mode is %c - Automatic", mode);
+          break;
+        }
+
+        case 'M':
+        {
+          mode = 'M';
+          packetCnt = sprintf(packetBuffer, "Mode is %c - Manual", mode);
+          break;
+        }
+
+        default:
+        {
+          packetCnt = sprintf(packetBuffer, "Invalid Option - mode is %c", mode);
+          break;
+        }
+      }
+      updateEEPROM(EEMode);
+      break;
+    }
+
     case 'U':
     {
       if( (isdigit(packetBuffer[2]) ) ||
@@ -137,6 +167,7 @@ void processUDP(void)
           {
             upperC = atoi((char *) &packetBuffer[2]);
             upperF = (((upperC * 9) / 5) + 32); 
+            updateEEPROM(EEUpperC);
             packetCnt = sprintf(packetBuffer, "Upper value set to %d C, %d F", upperC, upperF);
             break;
           }
@@ -145,6 +176,7 @@ void processUDP(void)
           {
             upperF = atoi((char *) &packetBuffer[2]);
             upperC = (((upperF - 32) * 5) / 9); 
+            updateEEPROM(EEUpperF);
             packetCnt = sprintf(packetBuffer, "Upper value set to %d F, %d C", upperF, upperC);
             break;
           }

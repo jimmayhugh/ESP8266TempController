@@ -1,8 +1,8 @@
 /*
-UdpTempController - updateLCD.ino
+UdpTempController - showEEPROM.ino
 
-Version 0.0.2
-Last Modified 06/09/2015
+Version 0.0.1
+Last Modified 06/11/2015
 By Jim Mayhugh
 
 Permission is hereby granted, free of charge, to any person obtaining
@@ -14,7 +14,8 @@ permit persons to whom the Software is furnished to do so, subject to
 the following conditions:
 
 The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.0
+included in all copies or substantial portions of the Software.
+
 This software uses multiple libraries that are subject to additional
 licenses as defined by the author of that software. It is the user's
 and developer's responsibility to determine and adhere to any additional
@@ -29,49 +30,71 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-void updateLCD(void)
+void showEEPROM(void)
 {
-  if(setDebug > 0)
-  {
-    Serial.println("Writing to LCD");
-  }
-  lcd.home();
-  IPAddress ip = WiFi.localIP();
-  sprintf(lcdBuffer, "%d.%d.%d.%d:%d", ip[0], ip[1], ip[2], ip[3], localPort);
-  lcd.print(lcdBuffer);
-  delay(delayVal);
-  lcd.setCursor(0, 1);
+  EEPROM_readAnything(EELowerC, lowerC);
+  EEPROM_readAnything(EELowerF, lowerF);
+  EEPROM_readAnything(EEUpperC, upperC);
+  EEPROM_readAnything(EEUpperF, upperF);
+  EEPROM_readAnything(EEMode, mode);
+  
+  Serial.print("lowerC = ");
+  Serial.print(lowerC);
+  Serial.print(", lowerF = ");
+  Serial.print(lowerF);
+  Serial.print(", upperC = ");
+  Serial.print(upperC);
+  Serial.print(", upperF = ");
+  Serial.print(upperF);
+  Serial.print(", mode = ");
   switch(mode)
   {
     case 'A':
     {
-      lcd.print("Automatic           ");      
+      Serial.println("Automatic");      
       break;
     }
     
     case 'M':
     {
-      lcd.print("Manual              ");      
+      Serial.println("Manual");      
       break;
     }
     
     default:
     {
-      lcd.print("Uninitialized       ");      
+      Serial.println("Uninitialized");      
       break;
     }
   }
-  delay(delayVal);
-  lcd.setCursor(0, 2);
-  sprintf(lcdBuffer, "Temp: %d F, %d C", fahrenheit, celsius);
-  lcd.print(lcdBuffer);
-  delay(delayVal);
-  lcd.setCursor(0, 3);
-  sprintf(lcdBuffer, "Switch1:%c Switch2:%c", chipStatus[1], chipStatus[2]);
-  lcd.print(lcdBuffer);
-  delay(delayVal);
-  if(setDebug > 0)
+}
+
+void updateEEPROM(uint16_t level)
+{
+  switch(level)
   {
-    Serial.println("Finished writing to LCD");
+    case EELowerC:
+    case EELowerF:
+    {
+      EEPROM_writeAnything(EELowerC, lowerC);
+      EEPROM_writeAnything(EELowerF, lowerF);
+      break;
+    }
+    
+    case EEUpperC:
+    case EEUpperF:
+    {
+      EEPROM_writeAnything(EEUpperC, upperC);
+      EEPROM_writeAnything(EEUpperF, upperF);
+      break;
+    }
+    
+    case EEMode:
+    {
+      EEPROM_writeAnything(EEMode, mode);
+      break;
+    }
   }
+  EEPROM.commit();
+  showEEPROM();
 }

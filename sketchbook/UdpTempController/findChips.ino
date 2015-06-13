@@ -64,24 +64,37 @@ void findChips(void)
     }
 
     Serial.println();
-    if(chip[chipCnt][0] == ds18b20ID) // set DS18B20 to 9-bit resolution
+    switch(chip[chipCnt][0]) // set DS18B20 to 9-bit resolution
     {
-      ds.reset();
-      ds.select(chip[chipCnt]);
-      ds.write(0x4E); // write to scratchpad;
-      ds.write(0x00); // low alarm
-      ds.write(0x00); // high alarm
-      ds.write(0x1F); // configuration register - 9 bit accuracy (0.5deg C)
-      delay(5);
-      ds.reset();
-      ds.select(chip[chipCnt]);
-      ds.write(0x48); // copy scratchpad to EEPROM;
-      delay(5);
-      if(setDebug > 0)
+      case ds18b20ID:
       {
-        Serial.print("chip[");
-        Serial.print(chipCnt);
-        Serial.println("] resolution set to 9-bit");
+        ds.reset();
+        ds.select(chip[chipCnt]);
+        ds.write(0x4E); // write to scratchpad;
+        ds.write(0x00); // low alarm
+        ds.write(0x00); // high alarm
+        ds.write(0x1F); // configuration register - 9 bit accuracy (0.5deg C)
+        delay(5);
+        ds.reset();
+        ds.select(chip[chipCnt]);
+        ds.write(0x48); // copy scratchpad to EEPROM;
+        delay(5);
+        if(setDebug > 0)
+        {
+          Serial.print("chip[");
+          Serial.print(chipCnt);
+          Serial.println("] resolution set to 9-bit");
+        }
+        break;
+      }
+
+      case ds2406ID:
+      {
+        if((mode != 'A') && (mode != 'M') ) // if mode not set, turn switch off
+        {
+          setState(chipCnt, ds2406PIOAoff);
+        }
+        break;
       }
     }
     chipCnt++;

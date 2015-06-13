@@ -1,8 +1,8 @@
 /*
 UdpTempController.ino
 
-Version 0.0.4
-Last Modified 06/12/2015
+Version 0.0.5
+Last Modified 06/13/2015
 By Jim Mayhugh
 
 V0.0.3 - added upper and lower temp control to UDP commands
@@ -11,6 +11,8 @@ V0.0.3 - added upper and lower temp control to UDP commands
 V0.0.4 - added findChips.ino to discover chips and set DS18B20
           to 9-bit resolution
          added setDebug for serial debug output 0 = no debug, 1 or higher = debug
+
+V0.0.5 - Added mode control
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -49,6 +51,8 @@ Configuration :
 #include <Wire.h>
 #include <ESP8266MCP23017.h>
 #include <ESP8266LCD.h>
+#include <EEPROM.h>
+#include <EEPROMAnything.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -65,17 +69,24 @@ char packetBuffer[512]; //buffer to hold incoming and outgoing packets
 char lcdBuffer[21];
 
 int16_t noBytes, fahrenheit, celsius, packetCnt;
-int16_t delayVal = 100, sDelayVal = 1000, cDelayVal = 250;
+int16_t delayVal = 25, sDelayVal = 5000, cDelayVal = 250;
 int16_t lowerC, lowerF, upperC, upperF;
 uint32_t lowerDelay, upperDelay;
-uint8_t const lcdChars = 20;
-uint8_t const lcdRows  = 4;
 int8_t i;
-int8_t present = 0;
+//int8_t present = 0;
 uint8_t data[15];
 uint8_t chip[4][8];
 uint8_t chipStatus[3];
 uint8_t chipCnt = 0;
+uint8_t mode = 0xFF;
+
+// EEPROM Storage locations
+const uint16_t EEPROMsize = 512;
+const uint16_t EEMode   = 0x08; // 'M' = Manual, 'A' = Automatic, anything else = uninitialized
+const uint16_t EELowerC = 0x10;
+const uint16_t EELowerF = 0x20;
+const uint16_t EEUpperC = 0x30;
+const uint16_t EEUpperF = 0x40;
 
 // LCD Stuff
 
@@ -83,6 +94,9 @@ uint8_t chipCnt = 0;
 // Make sure that SDA and SCA use 4.7K pullup resistors 
 // You can connect other I2C sensors to the I2C bus and share
 // the I2C bus.
+
+uint8_t const lcdChars = 20;
+uint8_t const lcdRows  = 4;
 
 ESP8266LCD lcd = ESP8266LCD(7);
 
@@ -130,7 +144,10 @@ void setup(void)
   // Open serial communications and wait for port to open:
   Serial.begin(115200);
   delay(sDelayVal);
-  
+
+  EEPROM.begin(EEPROMsize);
+  showEEPROM();
+
   lcd.begin(lcdChars, lcdRows);
   lcd.clear();
   lcd.home();
@@ -172,8 +189,10 @@ void setup(void)
     printWifiStatus();
   }
 
-  Serial.println("Connected to wifi");
-  Serial.print("Udp server started at port ");
+  Serial.print("Connected to wifi at IP Address: ");
+  IPAddress ip = WiFi.localIP();
+  Serial.println(ip);
+  Serial.print("Udp server started at port at ");
   Serial.println(localPort);
   Udp.begin(localPort);
   findChips();
