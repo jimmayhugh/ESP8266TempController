@@ -1,12 +1,6 @@
 /*
 UdpTempController - processUDP.ino
 
-Version 0.0.3
-Last Modified 06/11/2015
-By Jim Mayhugh
-
-V0.0.3 - Added Upper (U) and Lower (L) Temp values
-
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
 "Software"), to deal in the Software without restriction, including
@@ -89,6 +83,19 @@ void processUDP(void)
       break;
     }
 
+    case 'D':
+    {
+      if(packetBuffer[1] == '1')
+      {
+        setDebug = 1;
+        packetCnt = sprintf(packetBuffer, "%s", "Debug ON");
+      }else{
+        setDebug = 0;
+        packetCnt = sprintf(packetBuffer, "%s", "Debug OFF");
+      }
+      break;
+    }
+    
     case 'L':
     {
       if( (isdigit(packetBuffer[2]) ) ||
@@ -155,6 +162,54 @@ void processUDP(void)
       break;
     }
 
+    case 'N':
+    {
+      uint8_t setDomain = 0, y;
+
+      for(y = 0; y < domainCnt; y++)
+      {
+        if(isalnum(packetBuffer[y+2]))
+        {
+          Serial.print(packetBuffer[y+2]);
+          continue;
+        }else if( (packetBuffer[y+2] == 0x00) || 
+                  (packetBuffer[y+2] == 0x0A) ||
+                  (packetBuffer[y+2] == 0x0D)
+                ){
+          Serial.println();
+          setDomain = 1;
+          break;
+        }else{
+          if(packetBuffer[y+2] < 0x10)
+          {
+            Serial.print(", 0x0");
+          }else{
+            Serial.print(", 0x0");
+          }
+          Serial.print(packetBuffer[y+2], HEX);
+          break;
+        }
+      }
+
+      if(setDomain == 1)
+      {
+        mDNSset = usemDNS;
+        for(y = 0; y < domainCnt; y++) // clear domain name buffer
+          mDNSdomain[y] = 0;
+        for(y = 0; y < domainCnt; y++)
+        {
+          if(isalnum(packetBuffer[y+2])) // move domain name to domain buffer
+            mDNSdomain[y] = packetBuffer[y+2];
+        }
+        packetCnt = sprintf(packetBuffer, "mDNSdomain = %s", mDNSdomain);
+        updateEEPROM(EEmDNSset);
+      }else{
+        packetCnt = sprintf(packetBuffer, "%s", "Invalid Domain Name");
+      }
+      break;
+    }
+      
+    
     case 'U':
     {
       if( (isdigit(packetBuffer[2]) ) ||
@@ -201,5 +256,5 @@ void processUDP(void)
   }
   Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
   Udp.write(packetBuffer, packetCnt);
-  Udp.endPacket();    
+  Udp.endPacket();
 }

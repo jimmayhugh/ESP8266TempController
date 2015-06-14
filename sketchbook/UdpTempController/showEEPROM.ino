@@ -1,10 +1,6 @@
 /*
 UdpTempController - showEEPROM.ino
 
-Version 0.0.1
-Last Modified 06/11/2015
-By Jim Mayhugh
-
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
 "Software"), to deal in the Software without restriction, including
@@ -37,7 +33,10 @@ void showEEPROM(void)
   EEPROM_readAnything(EEUpperC, upperC);
   EEPROM_readAnything(EEUpperF, upperF);
   EEPROM_readAnything(EEMode, mode);
-  
+  EEPROM_readAnything(EEmDNSset, mDNSset);
+  if(mDNSset == usemDNS)  
+    EEPROM_readAnything(EEmDNSdomain, mDNSdomain);
+
   Serial.print("lowerC = ");
   Serial.print(lowerC);
   Serial.print(", lowerF = ");
@@ -51,22 +50,24 @@ void showEEPROM(void)
   {
     case 'A':
     {
-      Serial.println("Automatic");      
+      Serial.print("Automatic");      
       break;
     }
     
     case 'M':
     {
-      Serial.println("Manual");      
+      Serial.print("Manual");      
       break;
     }
     
     default:
     {
-      Serial.println("Uninitialized");      
+      Serial.print("Uninitialized");      
       break;
     }
   }
+  Serial.print(", mDNSdomain = ");
+  Serial.println(mDNSdomain);
 }
 
 void updateEEPROM(uint16_t level)
@@ -92,6 +93,13 @@ void updateEEPROM(uint16_t level)
     case EEMode:
     {
       EEPROM_writeAnything(EEMode, mode);
+      break;
+    }
+
+    case EEmDNSset:
+    {
+      EEPROM_writeAnything(EEmDNSset, mDNSset);
+      EEPROM_writeAnything(EEmDNSdomain, mDNSdomain);
       break;
     }
   }

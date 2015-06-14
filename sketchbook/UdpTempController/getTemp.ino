@@ -1,10 +1,6 @@
 /*
 UdpTempController - getTemp.ino
 
-Version 0.0.2
-Last Modified 06/09/2015
-By Jim Mayhugh
-
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
 "Software"), to deal in the Software without restriction, including
@@ -39,12 +35,18 @@ void getTemp(uint8_t x)
   ds.reset();
   ds.select(chip[x]);
   ds.write(0x44, 1);        // start conversion, with parasite power on at the end
-  
-  delay(cDelayVal);     // 9-bit resolution, maybe 250ms is enough, maybe not
+
+  ds18Val = x;
+  ds18.attach_ms(cDelayVal, readTemp);
+}
+
+void readTemp(void)
+{ 
+//  delay(cDelayVal);     // 9-bit resolution, maybe 250ms is enough, maybe not
   // we might do a ds.depower() here, but the reset will take care of it.
   
   ds.reset();
-  ds.select(chip[x]);
+  ds.select(chip[ds18Val]);
   ds.write(0xBE);         // Read Scratchpad
 
   for ( i = 0; i < 9; i++)            // we need 9 int8_ts
@@ -85,8 +87,8 @@ void getTemp(uint8_t x)
   else if (cfg == 0x40) raw = raw & ~1; // 11 bit res, 375 ms
   //// default is 12 bit resolution, 750 ms conversion time
   
-  celsius = raw / 16;
-  fahrenheit = ((celsius * 9)/5) + 32.0;
+  celsius = raw >> 4;
+  fahrenheit = ((celsius * 9)/5) + 32;
   
   if(setDebug > 0)
   {
@@ -96,5 +98,7 @@ void getTemp(uint8_t x)
     Serial.print(fahrenheit);
     Serial.println(" Fahrenheit");
   }
+
+  ds18.detach();
 }
 

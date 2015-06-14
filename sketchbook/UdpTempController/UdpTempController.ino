@@ -2,7 +2,7 @@
 UdpTempController.ino
 
 Version 0.0.5
-Last Modified 06/13/2015
+Last Modified 06/14/2015
 By Jim Mayhugh
 
 V0.0.3 - added upper and lower temp control to UDP commands
@@ -13,6 +13,10 @@ V0.0.4 - added findChips.ino to discover chips and set DS18B20
          added setDebug for serial debug output 0 = no debug, 1 or higher = debug
 
 V0.0.5 - Added mode control
+
+V0.0.6 - using Ticker.h for DS18B20 reads
+
+V0.0.7 - Added Debug Mode and set domain name
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -47,6 +51,7 @@ Configuration :
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
+#include <Ticker.h>
 #include <OneWire.h>
 #include <Wire.h>
 #include <ESP8266MCP23017.h>
@@ -60,6 +65,8 @@ Configuration :
 int status = WL_IDLE_STATUS;
 const char* ssid = "SSID";         // your network SSID (name)
 const char* pass = "PASSWD";       // your network password
+const uint8_t domainCnt = 21;
+const uint8_t usemDNS = 0xAA;
 
 uint8_t setDebug = 0;
 
@@ -69,7 +76,7 @@ char packetBuffer[512]; //buffer to hold incoming and outgoing packets
 char lcdBuffer[21];
 
 int16_t noBytes, fahrenheit, celsius, packetCnt;
-int16_t delayVal = 25, sDelayVal = 5000, cDelayVal = 250;
+int16_t delayVal = 25, sDelayVal = 5000;
 int16_t lowerC, lowerF, upperC, upperF;
 uint32_t lowerDelay, upperDelay;
 int8_t i;
@@ -77,16 +84,19 @@ int8_t i;
 uint8_t data[15];
 uint8_t chip[4][8];
 uint8_t chipStatus[3];
+char    mDNSdomain[domainCnt] = "ESP8266";
 uint8_t chipCnt = 0;
-uint8_t mode = 0xFF;
+uint8_t mode = 0xFF, mDNSset;
 
 // EEPROM Storage locations
-const uint16_t EEPROMsize = 512;
-const uint16_t EEMode   = 0x08; // 'M' = Manual, 'A' = Automatic, anything else = uninitialized
-const uint16_t EELowerC = 0x10;
-const uint16_t EELowerF = 0x20;
-const uint16_t EEUpperC = 0x30;
-const uint16_t EEUpperF = 0x40;
+const uint16_t EEPROMsize   = 512;
+const uint16_t EEMode       = 0x08; // 'M' = Manual, 'A' = Automatic, anything else = uninitialized
+const uint16_t EELowerC     = 0x10;
+const uint16_t EELowerF     = 0x20;
+const uint16_t EEUpperC     = 0x30;
+const uint16_t EEUpperF     = 0x40;
+const uint16_t EEmDNSset    = 0x50; // 0xAA = set, anything else is uninitialized
+const uint16_t EEmDNSdomain = 0x60; // mDNS domain name
 
 // LCD Stuff
 
@@ -132,7 +142,11 @@ const uint8_t oneWireAddress = 2; // OneWire Bus Address - use pin 2 for TeensyN
 const uint8_t chipAddrSize   = 8; // 64bit OneWire Address
 const uint8_t chipNameSize   = 15;
 
+uint16_t cDelayVal = 150; //delay reading DS18B20
+uint8_t  ds18Val;
+
 OneWire  ds(oneWireAddress);  // on pin 2 (a 4.7K resistor is necessary)
+Ticker   ds18; // timer to allow DS18B20 to be read
 
 // mDNS stuff
 // multicast DNS responder
@@ -174,7 +188,7 @@ void setup(void)
   //   the fully-qualified domain name is "esp8266.local"
   // - second argument is the IP address to advertise
   //   we send our IP address on the WiFi network
-  if (!mdns.begin("esp8266", WiFi.localIP()))
+  if (!mdns.begin(mDNSdomain, WiFi.localIP()))
   {
     Serial.println("Error setting up MDNS responder!");
     while(1) { 
