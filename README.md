@@ -30,7 +30,7 @@ The program will attempt to locate the UdpTempController, and if successful, wil
 In general, commands take the form of a single Uppercase Letter command, followed by a numeric or alpha value. single character values immediately proceed the command with no intervening spaces.
 As an example, to turn on the first switch in maual mode (more about modes in a moment), the command would be `AN`.
 
-Commands that include a numeric value have no intervening spaces. An example would be setting the Upper Temperature Value in Automatic mode: `UF80', which sets the Uppervalue to 80&deg;F
+Commands that include a numeric value have no intervening spaces. An example would be setting the Upper Temperature Value in Automatic mode: `UF80`, which sets the Uppervalue to 80&deg;F
 
 Commands that require a multi-character alpha-numeric string have an intervening space.
 As an example, to re-name the local url of the UdpTempController, the command would be `N "DomainName"`.
