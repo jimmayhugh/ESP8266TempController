@@ -23,12 +23,15 @@ I've also included a short PHP utility that will communicate with the UdpTempCon
 
 To use it, you'll need PHP5 and avahi-resolve installed.
 
-On the command line enter 'php TestUdpTempController.php esp8266.local'
+On the command line enter:
+`php TestUdpTempController.php esp8266.local`
 
 The program will attempt to locate the UdpTempController, and if successful, will display the IP address of the UdpTempController, and prompt for input.
 
 ##Commands
-In general, commands take the form of a single Uppercase Letter command, followed by a numeric or alpha value. single character values immediately proceed the command with no intervening spaces. As an example, to turn on the first switch in maual mode (more about modes in a moment), the command would be `AN`.
+In general, commands take the form of a single Uppercase Letter command, followed by a numeric or alpha value. single character values immediately proceed the command with no intervening spaces.
+As an example, to turn on the first switch in maual mode (more about modes in a moment), the command would be `AN`.
 
-Commands that require a multi-character alpha-numeric string have an intervening space. As an example, to re-name the local url of the UdpTempController, the command would be `N "DomainName"`.
+Commands that require a multi-character alpha-numeric string have an intervening space.
+As an example, to re-name the local url of the UdpTempController, the command would be `N "DomainName"`.
 
