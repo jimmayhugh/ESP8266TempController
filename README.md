@@ -2,7 +2,7 @@
 An ESP8266-based WiFi Temperature Controller that uses Avahi for network discovery, 1-Wire DS18B20 Digital Thermometers, DS2406+ Digital Switches, and an I2C-controlled 20x4 LCD.
 
 ## Programming Environment
-All of my coding was done using an ESP-12 board and the ESP8266 Arduino IDE described at
+All of my coding was done using an ESP-12 board and the ESP8266 Arduino IDE described at <a href="https://github.com/esp8266/Arduino" target="_blank">https://github.com/esp8266/Arduino</a>
  
 Before using the 
 I've also included a short PHP utility that will communicate with the UdpTempController and allow the state of the chips to be monitored and set.
