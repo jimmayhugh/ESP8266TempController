@@ -2,9 +2,7 @@
 An ESP8266-based WiFi Temperature Controller that uses Avahi for network discovery, 1-Wire DS18B20 Digital Thermometers, DS2406+ Digital Switches, and an I2C-controlled 20x4 LCD.
 
 ##Programming Environment
-All of my coding was done using an ESP-12 board and the ESP8266 Arduino IDE described at <a href="https://github.com/esp8266/Arduino" target="_blank">https://github.com/esp8266/Arduino</a>
-
-and using a simple <a href="http://smile.amazon.com/gp/product/B00F2F5HVK?psc=1&redirect=true&ref_=oh_aui_detailpage_o02_s00" target ="_blank">Black PL2303HX USB To TTL To UART RS232 COM Cable Module Converter</a> to upload the program.
+All of my coding was done using an ESP-12 board and the ESP8266 Arduino IDE described at <a href="https://github.com/esp8266/Arduino" target="_blank">https://github.com/esp8266/Arduino</a> and using a simple <a href="http://smile.amazon.com/gp/product/B00F2F5HVK?psc=1&redirect=true&ref_=oh_aui_detailpage_o02_s00" target ="_blank">Black PL2303HX USB To TTL To UART RS232 COM Cable Module Converter</a> to upload the program.
 
 ##Setup
 Before using the code for the first time, I recommend clearing the EEPROM on the ESP8266 to insure that it can be set up properly. I've included 'eeprom_clear.ino' in the utilities folder for that reason.
@@ -31,6 +29,8 @@ The program will attempt to locate the UdpTempController, and if successful, wil
 ##Commands
 In general, commands take the form of a single Uppercase Letter command, followed by a numeric or alpha value. single character values immediately proceed the command with no intervening spaces.
 As an example, to turn on the first switch in maual mode (more about modes in a moment), the command would be `AN`.
+
+Commands that include a numeric value have no intervening spaces. An example would be setting the Upper Temperature Value in Automatic mode: `UF80', which sets the Uppervalue to 80&deg;F
 
 Commands that require a multi-character alpha-numeric string have an intervening space.
 As an example, to re-name the local url of the UdpTempController, the command would be `N "DomainName"`.
