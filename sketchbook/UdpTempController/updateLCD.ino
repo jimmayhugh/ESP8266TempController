@@ -33,7 +33,7 @@ void updateLCD(void)
   }
   lcd.home();
   IPAddress ip = WiFi.localIP();
-  sprintf(lcdBuffer, "%d.%d.%d.%d:%d", ip[0], ip[1], ip[2], ip[3], localPort);
+  sprintf(lcdBuffer, "%d.%d.%d.%d:%d", ip[0], ip[1], ip[2], ip[3], udpPort);
   lcd.print(lcdBuffer);
   delay(delayVal);
   lcd.setCursor(0, 1);

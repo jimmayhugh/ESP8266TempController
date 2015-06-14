@@ -17,6 +17,8 @@ V0.0.5 - Added mode control
 V0.0.6 - using Ticker.h for DS18B20 reads
 
 V0.0.7 - Added Debug Mode and set domain name
+         Added setting initial SSID, PASSWD and UDP port via Serial Monitor
+          and saving to EEPROM.
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -63,14 +65,10 @@ Configuration :
 #include <stdint.h>
 
 int status = WL_IDLE_STATUS;
-const char* ssid = "SSID";         // your network SSID (name)
-const char* pass = "PASSWD";       // your network password
 const uint8_t domainCnt = 21;
 const uint8_t usemDNS = 0xAA;
 
 uint8_t setDebug = 0;
-
-uint16_t localPort = 2652;      // local port to listen for UDP packets
 
 char packetBuffer[512]; //buffer to hold incoming and outgoing packets
 char lcdBuffer[21];
@@ -80,7 +78,7 @@ int16_t delayVal = 25, sDelayVal = 5000;
 int16_t lowerC, lowerF, upperC, upperF;
 uint32_t lowerDelay, upperDelay;
 int8_t i;
-//int8_t present = 0;
+uint8_t udpAddr[5];
 uint8_t data[15];
 uint8_t chip[4][8];
 uint8_t chipStatus[3];
@@ -97,6 +95,21 @@ const uint16_t EEUpperC     = 0x30;
 const uint16_t EEUpperF     = 0x40;
 const uint16_t EEmDNSset    = 0x50; // 0xAA = set, anything else is uninitialized
 const uint16_t EEmDNSdomain = 0x60; // mDNS domain name
+const uint16_t EEWiFiSet    = 0x80; // 0xAA = set, anything else is unitialized
+const uint16_t EEssid       = 0x90; // WiFi SSID   string
+const uint16_t EEpasswd     = 0xB0; // WiFi PASSWD string
+const uint16_t EEuseUDPport = 0xE0; // 0xAA = set, anything else is uninitialized
+const uint16_t EEudpPort    = 0x0F; // UDP port address
+
+// WiFi stuff
+const uint8_t WiFiStrCnt = 32;  // max string length
+const uint8_t useWiFi = 0xAA;
+const uint8_t useUDPport = 0xAA;
+const uint8_t udpPortCnt = 4;
+uint8_t wifiSet = 0, udpSet = 0;
+char ssid[WiFiStrCnt]   = "SSID";        // your network SSID (name)
+char passwd[WiFiStrCnt] = "PASSWD";      // your network password
+uint16_t udpPort = 0x000;                // local port to listen for UDP packets
 
 // LCD Stuff
 
@@ -156,6 +169,8 @@ MDNSResponder mdns;
 void setup(void)
 {
   // Open serial communications and wait for port to open:
+  ESP.wdtDisable();
+  
   Serial.begin(115200);
   delay(sDelayVal);
 
@@ -166,8 +181,104 @@ void setup(void)
   lcd.clear();
   lcd.home();
 
+  if(wifiSet != useWiFi)
+  {
+    uint8_t z = 0;
+
+    for(uint8_t z = 0; z < WiFiStrCnt; z++) // clear ssid and passwd string
+    {
+      ssid[z]   = 0xFF;
+      passwd[z] = 0xFF;
+    }
+
+    Serial.print("Enter SSID:");
+    while(1)
+    {
+      while(Serial.available())
+      {
+        ssid[z] = Serial.read();
+        if( (ssid[z] == 0x0A) || (ssid[z] == 0x0D) || (ssid[z] == 0x00) )
+        {
+          ssid[z] = 0x00;
+          break;
+        }
+        z++;
+        if(z == 30)
+        {
+          ssid[z] = 0x00;
+          break;
+        }
+      }
+      if(ssid[z] == 0x00)
+        break;
+    }
+    Serial.println(ssid);
+
+    z = 0;
+    Serial.print("Enter PASSWD:");
+    while(1)
+    {
+      while(Serial.available())
+      {
+        passwd[z] = Serial.read();
+        if( (passwd[z] == 0x0A) || (passwd[z] == 0x0D) || (passwd[z] == 0x00) )
+        {
+          passwd[z] = 0x00;
+          break;
+        }
+        z++;
+        if(z == 30)
+        {
+          passwd[z] = 0x00;
+          break;
+        }
+      }
+      if(passwd[z] == 0x00)
+        break;
+    }
+    Serial.println(passwd);
+    wifiSet = useWiFi;
+    updateEEPROM(EEWiFiSet);
+  }
+
+  if(udpSet != useUDPport)
+  {
+    uint8_t z = 0;
+
+    for(uint8_t z = 0; z < udpPortCnt; z++) // clear UDP Port Address string
+    {
+      udpAddr[z]   = 0xFF;
+    }
+
+    Serial.print("Enter UDP Port:");
+    while(1)
+    {
+      while(Serial.available())
+      {
+        udpAddr[z] = Serial.read();
+        if( (udpAddr[z] == 0x0A) || (udpAddr[z] == 0x0D) || (udpAddr[z] == 0x00) )
+        {
+          udpAddr[z] = 0x00;
+          break;
+        }
+        z++;
+        if(z == 30)
+        {
+          udpAddr[z] = 0x00;
+          break;
+        }
+      }
+      if(udpAddr[z] == 0x00)
+        break;
+    }
+    udpPort = atoi( (char *) udpAddr);
+    udpSet = useUDPport;
+    Serial.println(udpPort);
+    updateEEPROM(EEuseUDPport);
+  }
+
   // setting up Station AP
-  WiFi.begin(ssid, pass);
+  WiFi.begin(ssid, passwd);
   
   // Wait for connect to AP
   Serial.print("[Connecting]");
@@ -207,8 +318,8 @@ void setup(void)
   IPAddress ip = WiFi.localIP();
   Serial.println(ip);
   Serial.print("Udp server started at port at ");
-  Serial.println(localPort);
-  Udp.begin(localPort);
+  Serial.println(udpPort);
+  Udp.begin(udpPort);
   findChips();
 }
 

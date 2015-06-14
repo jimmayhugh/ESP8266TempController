@@ -36,6 +36,17 @@ void showEEPROM(void)
   EEPROM_readAnything(EEmDNSset, mDNSset);
   if(mDNSset == usemDNS)  
     EEPROM_readAnything(EEmDNSdomain, mDNSdomain);
+  EEPROM_readAnything(EEWiFiSet, wifiSet);
+  if(wifiSet == useWiFi)
+  {
+    EEPROM_readAnything(EEssid, ssid);
+    EEPROM_readAnything(EEpasswd, passwd);
+  }
+  EEPROM_readAnything(EEuseUDPport, udpSet);
+  if(udpSet == useUDPport)
+  {
+    EEPROM_readAnything(EEudpPort, udpPort);
+  }  
 
   Serial.print("lowerC = ");
   Serial.print(lowerC);
@@ -67,7 +78,14 @@ void showEEPROM(void)
     }
   }
   Serial.print(", mDNSdomain = ");
-  Serial.println(mDNSdomain);
+  Serial.print(mDNSdomain);
+  Serial.print(", ssid = ");
+  Serial.print(ssid);
+  Serial.print(", passwd = ");
+  Serial.print(passwd);
+  Serial.print(", udpPort = ");
+  Serial.println(udpPort);
+
 }
 
 void updateEEPROM(uint16_t level)
@@ -101,6 +119,20 @@ void updateEEPROM(uint16_t level)
       EEPROM_writeAnything(EEmDNSset, mDNSset);
       EEPROM_writeAnything(EEmDNSdomain, mDNSdomain);
       break;
+    }
+
+    case EEWiFiSet:
+    {
+      EEPROM_writeAnything(EEWiFiSet, wifiSet);
+      EEPROM_writeAnything(EEssid, ssid);
+      EEPROM_writeAnything(EEpasswd, passwd);
+      break;
+    }
+
+    case EEuseUDPport:
+    {
+      EEPROM_writeAnything(EEuseUDPport, udpSet);
+      EEPROM_writeAnything(EEudpPort, udpPort);
     }
   }
   EEPROM.commit();
