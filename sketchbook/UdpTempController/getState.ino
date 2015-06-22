@@ -30,55 +30,58 @@ void getState(uint8_t x)
 {
 uint16_t chipCRCval, chipBufferCRC;
   ds.reset();
-  ds.select(chip[x]);
+  ds.select(ds2406[x].switchAddr);
   ds.write(ds2406MemRd);
-  data[0] = ds2406MemRd;
+  ds2406[x].switchData[0] = ds2406MemRd;
   ds.write(0x0); //2406 Addr Low
-  data[1] = 0;
+  ds2406[x].switchData[1] = 0;
   ds.write(0x0); //2406 Addr Hgh
-  data[2] = 0;
-  for(int i = 3; i <  13; i++)
+  ds2406[x].switchData[2] = 0;
+  for(int i = 3; i <  switchDataSize; i++)
   {
-    data[i] = ds.read();
+    ds2406[x].switchData[i] = ds.read();
   }
   ds.reset();
 
-  chipCRCval = ~(ds.crc16(data, 11)) & 0xFFFF;
-  chipBufferCRC = ((data[12] << 8) | data[11]);
+  chipCRCval = ~(ds.crc16(ds2406[x].switchData, 11)) & 0xFFFF;
+  chipBufferCRC = ((ds2406[x].switchData[12] << 8) | ds2406[x].switchData[11]);
   
-  if(setDebug > 0)
+  if(setDebug & switchDebug)
   {
-    Serial.print("Data = ");
-    for(int i = 3; i <  13; i++)
+    Serial.print("ds2406[");
+    Serial.print(x);
+    Serial.print("].switchData = ");
+    for(int i = 0; i <  switchDataSize; i++)
     {
-      if(data[i] < 0x0f)
+      if(ds2406[x].switchData[i] < 0x0f)
       {
         Serial.print("0x0");
       }else{
         Serial.print("0x");
       }
-      Serial.print(data[i], HEX);
+      Serial.print(ds2406[x].switchData[i], HEX);
       Serial.print(", ");    
     }
+    Serial.println();
     Serial.print("chipCRCval = 0x");
     Serial.print(chipCRCval, HEX);
     Serial.print(", chipBufferCRC = 0x");
-    Serial.print(chipBufferCRC, HEX);
+    Serial.println(chipBufferCRC, HEX);
   }
 
-  if(data[10] & dsPIO_A)
+  if(ds2406[x].switchData[10] & dsPIO_A)
   {
-    chipStatus[chipCnt] = switchStatusOFF;
+    ds2406[x].switchStatus = switchStatusOFF;
   }else{
-    chipStatus[chipCnt] = switchStatusON;
+    ds2406[x].switchStatus = switchStatusON;
   }
 
-  if(setDebug > 0)
+  if(setDebug & switchDebug)
   {
-    Serial.print(", chipStatus[");
-    Serial.print(chipCnt);
-    Serial.print("] = ");
-    Serial.println( (char) chipStatus[chipCnt] );
+    Serial.print(", ds2406[");
+    Serial.print(x);
+    Serial.print("].switchStatus = ");
+    Serial.println( (char) ds2406[x].switchStatus );
   }
 }
 

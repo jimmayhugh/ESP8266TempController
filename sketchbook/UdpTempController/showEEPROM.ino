@@ -47,44 +47,63 @@ void showEEPROM(void)
   {
     EEPROM_readAnything(EEudpPort, udpPort);
   }  
-
-  Serial.print("lowerC = ");
-  Serial.print(lowerC);
-  Serial.print(", lowerF = ");
-  Serial.print(lowerF);
-  Serial.print(", upperC = ");
-  Serial.print(upperC);
-  Serial.print(", upperF = ");
-  Serial.print(upperF);
-  Serial.print(", mode = ");
-  switch(mode)
+  EEPROM_readAnything(EEs0DelaySet, s0Set);
+  if(s0Set == useS0)
   {
-    case 'A':
+    EEPROM_readAnything(EEs0Delay, ds2406[0].switchDelay);
+  }  
+  EEPROM_readAnything(EEs1DelaySet, s1Set);
+  if(s1Set == useS1)
+  {
+    EEPROM_readAnything(EEs1Delay, ds2406[1].switchDelay);
+  }  
+
+  if(setDebug & eepromDebug)
+  {
+    Serial.print("lowerC = ");
+    Serial.print(lowerC);
+    Serial.print(", lowerF = ");
+    Serial.print(lowerF);
+    Serial.print(", upperC = ");
+    Serial.print(upperC);
+    Serial.print(", upperF = ");
+    Serial.println(upperF);
+    Serial.print("ds2406[0].switchDelay = ");
+    Serial.print(ds2406[0].switchDelay);
+    Serial.print(", ds2406[1].switchDelay = ");
+    Serial.println(ds2406[1].switchDelay);
+    Serial.print("mode = ");
+  
+    switch(mode)
     {
-      Serial.print("Automatic");      
-      break;
+      case 'A':
+      {
+        Serial.print("Automatic");      
+        break;
+      }
+      
+      case 'M':
+      {
+        Serial.print("Manual");      
+        break;
+      }
+      
+      default:
+      {
+        Serial.print("Uninitialized");      
+        break;
+      }
     }
-    
-    case 'M':
-    {
-      Serial.print("Manual");      
-      break;
-    }
-    
-    default:
-    {
-      Serial.print("Uninitialized");      
-      break;
-    }
+    Serial.println();
+    Serial.print("mDNSdomain = ");
+    Serial.println(mDNSdomain);
+    Serial.print("ssid = ");
+    Serial.println(ssid);
+    Serial.print("passwd = ");
+    Serial.println(passwd);
+    Serial.print("udpPort = ");
+    Serial.println(udpPort);
   }
-  Serial.print(", mDNSdomain = ");
-  Serial.print(mDNSdomain);
-  Serial.print(", ssid = ");
-  Serial.print(ssid);
-  Serial.print(", passwd = ");
-  Serial.print(passwd);
-  Serial.print(", udpPort = ");
-  Serial.println(udpPort);
 
 }
 
@@ -133,6 +152,18 @@ void updateEEPROM(uint16_t level)
     {
       EEPROM_writeAnything(EEuseUDPport, udpSet);
       EEPROM_writeAnything(EEudpPort, udpPort);
+    }
+
+    case EEs0Delay:
+    {
+      EEPROM_writeAnything(EEs0DelaySet, s0Set);
+      EEPROM_writeAnything(EEs0Delay, ds2406[0].switchDelay);
+    }
+
+    case EEs1Delay:
+    {
+      EEPROM_writeAnything(EEs1DelaySet, s1Set);
+      EEPROM_writeAnything(EEs1Delay, ds2406[1].switchDelay);
     }
   }
   EEPROM.commit();

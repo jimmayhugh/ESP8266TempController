@@ -28,8 +28,76 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 void setState(uint8_t x, uint8_t state)
 {
+  if(setDebug & switchDebug)
+  {
+  Serial.print("Setting ");
+    switch(x)
+    {
+      case upper:
+      {
+        Serial.print("upper LED ");
+        break;
+      }
+      
+      case lower:
+      {
+        Serial.print("lower LED ");
+        break;
+      }
+      
+      default:
+      {
+        Serial.print(" UNKNOWN LED ");
+        Serial.print(x);
+        break;
+      }
+    }
+    switch(state)
+    {
+      case ds2406PIOAon:
+      {
+        Serial.println("ON");
+        break;
+      }
+
+      case ds2406PIOAoff:
+      {
+        Serial.println("OFF");
+        break;
+      }
+
+      default:
+      {
+        Serial.println("UNKNOWN");
+        break;
+      }
+    }
+    Serial.print("Switch[");
+    if(x == lower)
+    {
+      Serial.print("lower] = ");
+    }else{
+      Serial.print("upper] = ");
+    }
+    for(int q = 0; q < chipAddrSize; q++)
+    {
+      if(ds2406[x].switchAddr[q] < 0x10)
+      {
+        Serial.print("0x0");
+      }else{
+        Serial.print("0x");
+      }
+      Serial.print(ds2406[x].switchAddr[q], HEX);
+      if(q < chipAddrSize - 1)
+      {
+        Serial.print(", ");
+      }else{
+        Serial.println();
+      }
+    }
+  }
   ds.reset();
-  ds.select(chip[x]);
+  ds.select(ds2406[x].switchAddr);
   ds.write(ds2406MemWr);
   ds.write(ds2406AddLow);
   ds.write(ds2406AddHi);
@@ -40,4 +108,5 @@ void setState(uint8_t x, uint8_t state)
   }
   ds.write(ds2406End);
   ds.reset();
+  
 }

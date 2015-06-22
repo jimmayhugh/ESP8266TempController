@@ -28,7 +28,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 void processUDP(void)
 {
-  if(setDebug > 0)
+  if(setDebug & udpDebug)
   {
     Serial.print(millis() / 1000);
     Serial.print(":Packet of ");
@@ -36,23 +36,24 @@ void processUDP(void)
     Serial.print(" received from ");
     Serial.print(Udp.remoteIP());
     Serial.print(":");
-    Serial.println(Udp.remotePort());
+    Serial.println(Udp.remotePort(), HEX);
   }
   
   // We've received a packet, read the data from it
   Udp.read(packetBuffer,noBytes); // read the packet into the buffer
 
   // display the packet contents in HEX
-  if(setDebug > 0)
+  if(setDebug & udpDebug)
   {
-    for (int i=1;i<=noBytes;i++)
+    for (int i = 1;i <= noBytes; i++)
     {
-      Serial.print(packetBuffer[i-1],HEX);
+      Serial.print(packetBuffer[i-1]);
       if (i % 32 == 0)
       {
         Serial.println();
-      }else Serial.print(' ');
+      }
     } // end for
+    Serial.println();
   }
 
   switch(packetBuffer[0])
@@ -61,11 +62,11 @@ void processUDP(void)
     {
       if(packetBuffer[1] == 'N')
       {
-        setState(1, ds2406PIOAon);
-        packetCnt = sprintf(packetBuffer, "%s", "Turning LED A ON");
+        setState(upper, ds2406PIOAon);
+        packetCnt = sprintf(packetBuffer, "%s", "Turning Upper LED ON");
       }else{
-        setState(1, ds2406PIOAoff);
-        packetCnt = sprintf(packetBuffer, "%s", "Turning LED A OFF");
+        setState(upper, ds2406PIOAoff);
+        packetCnt = sprintf(packetBuffer, "%s", "Turning Upper LED OFF");
       }
       break;
     }
@@ -74,63 +75,22 @@ void processUDP(void)
     {
       if(packetBuffer[1] == 'N')
       {
-        setState(2, ds2406PIOAon);
-        packetCnt = sprintf(packetBuffer, "%s", "Turning LED B ON");
+        setState(lower, ds2406PIOAon);
+        packetCnt = sprintf(packetBuffer, "%s", "Turning Lower LED ON");
       }else{
-        setState(2, ds2406PIOAoff);
-        packetCnt = sprintf(packetBuffer, "%s", "Turning LED B OFF");
+        setState(lower, ds2406PIOAoff);
+        packetCnt = sprintf(packetBuffer, "%s", "Turning Lower LED OFF");
       }
       break;
     }
 
     case 'D':
     {
-      if(packetBuffer[1] == '1')
-      {
-        setDebug = 1;
-        packetCnt = sprintf(packetBuffer, "%s", "Debug ON");
-      }else{
-        setDebug = 0;
-        packetCnt = sprintf(packetBuffer, "%s", "Debug OFF");
-      }
-      break;
-    }
-    
-    case 'L':
-    {
-      if( (isdigit(packetBuffer[2]) ) ||
-          ((packetBuffer[2] == '-') && isdigit(packetBuffer[3]))
-        )
-      { 
-        switch(packetBuffer[1])
-        {
-          case 'C':
-          {
-            lowerC = atoi((char *) &packetBuffer[2]);
-            lowerF = (((lowerC * 9) / 5) + 32);
-            updateEEPROM(EELowerC);
-            packetCnt = sprintf(packetBuffer, "Lower value set to %d C, %d F", lowerC, lowerF);
-            break;
-          }
-
-          case 'F':
-          {
-            lowerF = atoi((char *) &packetBuffer[2]);
-            lowerC = (((lowerF - 32) * 5) / 9); 
-            updateEEPROM(EELowerF);
-            packetCnt = sprintf(packetBuffer, "Lower value set to %d F, %d C", lowerF, lowerC);
-            break;
-          }
-          
-          default:
-          {
-            packetCnt = sprintf(packetBuffer, "Invalid Option - Lower value is %d F, %d C", lowerF, lowerC);
-            break;
-          }
-        }
-      }else{
-        packetCnt = sprintf(packetBuffer, "Invalid Option - Lower value is %d F, %d C", lowerF, lowerC);
-      }
+      if(setDebug & udpDebug)
+        Serial.print("Setting setDebug to 0x");
+      setDebug = atoi(&packetBuffer[1]);
+      Serial.println(setDebug, HEX);
+      packetCnt = sprintf(packetBuffer, "setDebug = %0X", setDebug);
       break;
     }
 
@@ -170,23 +130,28 @@ void processUDP(void)
       {
         if(isalnum(packetBuffer[y+2]))
         {
-          Serial.print(packetBuffer[y+2]);
+          if(setDebug & udpDebug)
+            Serial.print(packetBuffer[y+2]);
           continue;
         }else if( (packetBuffer[y+2] == 0x00) || 
                   (packetBuffer[y+2] == 0x0A) ||
                   (packetBuffer[y+2] == 0x0D)
                 ){
-          Serial.println();
+          if(setDebug & udpDebug)
+            Serial.println();
           setDomain = 1;
           break;
         }else{
-          if(packetBuffer[y+2] < 0x10)
+          if(setDebug & udpDebug)
           {
-            Serial.print(", 0x0");
-          }else{
-            Serial.print(", 0x0");
+            if(packetBuffer[y+2] < 0x10)
+            {
+              Serial.print(", 0x0");
+            }else{
+              Serial.print(", 0x0");
+            }
+            Serial.print(packetBuffer[y+2], HEX);
           }
-          Serial.print(packetBuffer[y+2], HEX);
           break;
         }
       }
@@ -209,51 +174,143 @@ void processUDP(void)
       break;
     }
       
-    
-    case 'U':
+/*
+  Process: Sets the appropriate temp value and delay for automatic temperature control
+  Format:  S,LOC,TYPE,TEMP,DELAY
+  Where:
+    S     = The UDP command 'S'
+    LOC   = The First 'U' or second 'L' switch
+    TYPE  = Either Celsius 'C' or Fahrenheit 'F'
+    TEMP  = The Temperature in integer degrees, ie "100"
+    DELAY = The Delay before activating the switch in seconds, ie "10"
+*/
+    case 'S':
     {
-      if( (isdigit(packetBuffer[2]) ) ||
-          ((packetBuffer[2] == '-') && isdigit(packetBuffer[3]))
-        )
-      { 
-        switch(packetBuffer[1])
-        {
-          case 'C':
-          {
-            upperC = atoi((char *) &packetBuffer[2]);
-            upperF = (((upperC * 9) / 5) + 32); 
-            updateEEPROM(EEUpperC);
-            packetCnt = sprintf(packetBuffer, "Upper value set to %d C, %d F", upperC, upperF);
-            break;
-          }
+      char *pos = strchr(packetBuffer, ',');
+      char switchLOC   = (char) *(pos+1);
+      pos = strchr(pos+1, ',');
+      char switchTYPE  = (char) *(pos+1);
+      pos = strchr(pos+1, ',');
+      char *pos1 = strchr(pos+1, ',');
+      *pos1 = NULL;
+      char *switchTEMP  = pos+1;
+      char *switchDELAY = pos1+1;
 
-          case 'F':
-          {
-            upperF = atoi((char *) &packetBuffer[2]);
-            upperC = (((upperF - 32) * 5) / 9); 
-            updateEEPROM(EEUpperF);
-            packetCnt = sprintf(packetBuffer, "Upper value set to %d F, %d C", upperF, upperC);
-            break;
-          }
-          
-          default:
-          {
-            packetCnt = sprintf(packetBuffer, "Invalid Option - Upper value is %d F, %d C", upperF, upperC);
-            break;
-          }
+      if(setDebug & udpDebug)
+      {
+        Serial.print("switchLOC = ");
+        Serial.println(switchLOC);
+        Serial.print("switchTYPE = ");
+        Serial.println(switchTYPE);
+        Serial.print("switchTEMP = ");
+        Serial.println(switchTEMP);
+        Serial.print("switchDELAY = ");
+        Serial.println(switchDELAY);
+      }
+      
+      uint8_t   useUpper  = 0, useLower = 0, sError = 0;
+      int16_t   useTemp   = atoi(switchTEMP);
+      uint16_t  useDelay  = atoi(switchDELAY);
+      
+      switch(switchLOC)
+      {
+        case 'U':
+        {
+          useUpper = 1;
+          ds2406[upper].switchDelay = useDelay;
+          s0Set = useS0;
+          updateEEPROM(EEs0Delay);
+          break;
         }
+
+        case 'L':
+        {
+          useLower = 1;
+          ds2406[lower].switchDelay = useDelay;
+          s1Set = useS1;
+          updateEEPROM(EEs1Delay);
+          break;
+        }
+
+        default:
+        {
+          sError = 1;
+          break;
+        }
+      }
+      
+      switch(switchTYPE)
+      {
+        
+        case 'C':
+        {
+          if(useLower == 1)
+          {
+            lowerC = useTemp;
+            lowerF = (((useTemp * 9) / 5) + 32);
+            updateEEPROM(EELowerC);
+          }else if(useUpper == 1)
+          {
+            upperC = useTemp;
+            upperF = (((useTemp * 9) / 5) + 32);
+            updateEEPROM(EEUpperC);
+          }else{
+            sError = 1;
+          }
+          break;
+        }
+
+        case 'F':
+        {
+          if(useLower == 1)
+          {
+            lowerF = useTemp;
+            lowerC = (((useTemp - 32) * 5) / 9); 
+            updateEEPROM(EELowerF);
+          }else if(useUpper == 1)
+          {
+            upperF = useTemp;
+            upperC = (((useTemp - 32) * 5) / 9); 
+            updateEEPROM(EEUpperF);
+          }else{
+            sError = 1;
+          }
+          break;
+        }
+        
+        default:
+        {
+          sError = 1;
+          break;
+        }
+      }
+
+      if(sError == 0)
+      {
+        packetCnt = sprintf(packetBuffer, "Upper is %d F, %d C, %d Sec, Lower is %d F, %d C, %d Sec",
+                            upperF, upperC, ds2406[upper].switchDelay,
+                            lowerF, lowerC, ds2406[lower].switchDelay
+                            );
       }else{
-        packetCnt = sprintf(packetBuffer, "Invalid Option - Upper value is %d F, %d C", upperF, upperC);
+        packetCnt = sprintf(packetBuffer, "Invalid Option - Upper value is %d F, %d C, %d Sec, Lower is %d F, %d C, %d Sec",
+                            upperF, upperC, ds2406[upper].switchDelay,
+                            lowerF, lowerC, ds2406[lower].switchDelay
+                            );
+
       }
       break;
     }
 
     default:
     {
-      packetCnt = sprintf(packetBuffer, "%d, %d, %c, %c\n", celsius, fahrenheit, chipStatus[1], chipStatus[2]);
+      packetCnt = sprintf(packetBuffer, "%d, %d, %c, %c", ds18b20.tempCelsius, ds18b20.tempFahrenheit,
+                                                          ds2406[upper].switchStatus, ds2406[lower].switchStatus);
       break;
     }
   }
+
+  if(setDebug & udpDebug)
+    Serial.println(packetBuffer);
   Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
   Udp.write(packetBuffer, packetCnt);
   Udp.endPacket();

@@ -2,7 +2,7 @@
 UdpTempController.ino
 
 Version 0.0.5
-Last Modified 06/14/2015
+Last Modified 06/22/2015
 By Jim Mayhugh
 
 V0.0.3 - added upper and lower temp control to UDP commands
@@ -20,6 +20,10 @@ V0.0.7 - Added Debug Mode and set domain name
          Added setting initial SSID, PASSWD and UDP port via Serial Monitor
           and saving to EEPROM.
 
+V0.0.8 - Added time delay in seconds for switches.
+         Added additional UDP Commands.
+         Added individual debug values for troubleshooting purposes.
+         
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
 "Software"), to deal in the Software without restriction, including
@@ -68,38 +72,55 @@ int status = WL_IDLE_STATUS;
 const uint8_t domainCnt = 21;
 const uint8_t usemDNS = 0xAA;
 
-uint8_t setDebug = 0;
+const uint16_t udpDebug       = 0x0001;
+const uint16_t tempDebug      = 0x0002;
+const uint16_t switchDebug    = 0x0004;
+const uint16_t lcdDebug       = 0x0008;
+const uint16_t eepromDebug    = 0x0010;
+const uint16_t findChipsDebug = 0x0020;
+
+uint16_t setDebug = 0x0000;
 
 char packetBuffer[512]; //buffer to hold incoming and outgoing packets
 char lcdBuffer[21];
 
-int16_t noBytes, fahrenheit, celsius, packetCnt;
+int16_t noBytes, packetCnt;
 int16_t delayVal = 25, sDelayVal = 5000;
 int16_t lowerC, lowerF, upperC, upperF;
-uint32_t lowerDelay, upperDelay;
+uint32_t lowerDelay, upperDelay, tempDelay, startUpperTimer, startLowerTimer;
 int8_t i;
 uint8_t udpAddr[5];
 uint8_t data[15];
-uint8_t chip[4][8];
+uint8_t chip[8];
 uint8_t chipStatus[3];
-char    mDNSdomain[domainCnt] = "ESP8266";
+char *delim =",";
+char *result = NULL;
+char mDNSdomain[domainCnt] = "ESP8266";
 uint8_t chipCnt = 0;
 uint8_t mode = 0xFF, mDNSset;
 
 // EEPROM Storage locations
 const uint16_t EEPROMsize   = 512;
-const uint16_t EEMode       = 0x08; // 'M' = Manual, 'A' = Automatic, anything else = uninitialized
-const uint16_t EELowerC     = 0x10;
-const uint16_t EELowerF     = 0x20;
-const uint16_t EEUpperC     = 0x30;
-const uint16_t EEUpperF     = 0x40;
-const uint16_t EEmDNSset    = 0x50; // 0xAA = set, anything else is uninitialized
-const uint16_t EEmDNSdomain = 0x60; // mDNS domain name
-const uint16_t EEWiFiSet    = 0x80; // 0xAA = set, anything else is unitialized
-const uint16_t EEssid       = 0x90; // WiFi SSID   string
-const uint16_t EEpasswd     = 0xB0; // WiFi PASSWD string
-const uint16_t EEuseUDPport = 0xE0; // 0xAA = set, anything else is uninitialized
-const uint16_t EEudpPort    = 0x0F; // UDP port address
+const uint16_t EEMode       = 0x0008; // 'M' = Manual, 'A' = Automatic, anything else = uninitialized
+const uint16_t EELowerC     = 0x0010;
+const uint16_t EELowerF     = 0x0020;
+const uint16_t EEUpperC     = 0x0030;
+const uint16_t EEUpperF     = 0x0040;
+const uint16_t EEmDNSset    = 0x0050; // 0xAA = set, anything else is uninitialized
+const uint16_t EEmDNSdomain = 0x0060; // mDNS domain name
+const uint16_t EEWiFiSet    = 0x0080; // 0xAA = set, anything else is unitialized
+const uint16_t EEssid       = 0x0090; // WiFi SSID   string
+const uint16_t EEpasswd     = 0x00B0; // WiFi PASSWD string
+const uint16_t EEuseUDPport = 0x00E0; // 0xAA = set, anything else is uninitialized
+const uint16_t EEudpPort    = 0x00F0; // UDP port address
+const uint16_t EEs0DelaySet = 0x0100; // 0xAA = set, anything else is uninitialized
+const uint16_t EEs0Delay    = 0x0110; // Switch1 Delay
+const uint16_t EEs1DelaySet = 0x0120; // 0xAA = set, anything else is uninitialized
+const uint16_t EEs1Delay    = 0x0130; // Switch1 Delay
+
+const uint8_t useS0 = 0xAA;
+const uint8_t useS1 = 0xAA;
+uint8_t s0Set = 0, s1Set = 0;
 
 // WiFi stuff
 const uint8_t WiFiStrCnt = 32;  // max string length
@@ -109,7 +130,7 @@ const uint8_t udpPortCnt = 4;
 uint8_t wifiSet = 0, udpSet = 0;
 char ssid[WiFiStrCnt]   = "SSID";        // your network SSID (name)
 char passwd[WiFiStrCnt] = "PASSWD";      // your network password
-uint16_t udpPort = 0x000;                // local port to listen for UDP packets
+uint16_t udpPort = 0x0000;                // local port to listen for UDP packets
 
 // LCD Stuff
 
@@ -151,15 +172,55 @@ const uint8_t ds2406End      = 0xff;
 const uint8_t switchStatusON   = 'N';
 const uint8_t switchStatusOFF  = 'F';
 
-const uint8_t oneWireAddress = 2; // OneWire Bus Address - use pin 2 for TeensyNet board
-const uint8_t chipAddrSize   = 8; // 64bit OneWire Address
-const uint8_t chipNameSize   = 15;
+const uint8_t oneWireAddress  =  2; // OneWire Bus Address - use pin 2 for TeensyNet board
+const uint8_t chipAddrSize    =  8; // 64bit OneWire Address
+const uint8_t tempDataSize    =  9; // temp data
+const uint8_t switchDataSize  = 13; // switch data
+const uint8_t chipNameSize    = 15;
+const uint8_t cDelayVal       = 150; //delay reading DS18B20
 
-uint16_t cDelayVal = 150; //delay reading DS18B20
-uint8_t  ds18Val;
+bool     tempConversion = FALSE;
 
-OneWire  ds(oneWireAddress);  // on pin 2 (a 4.7K resistor is necessary)
-Ticker   ds18; // timer to allow DS18B20 to be read
+// Temp Stuff
+typedef struct
+{
+  uint8_t     tempAddr[chipAddrSize];
+  uint8_t     tempData[tempDataSize];
+  int16_t     tempFahrenheit;
+  int16_t     tempCelsius;
+  char        tempName[chipNameSize+1];
+}tempStruct;
+
+const tempStruct tempClear = { {0,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0,0}, 0, 0, "" };
+
+tempStruct ds18b20 = { {0,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0,0}, 0, 0, "" };
+
+// SwitchStuff
+const uint8_t maxSwitches = 2;
+const uint8_t upper = 0, lower = 1;
+
+typedef struct
+{
+  uint8_t     switchAddr[chipAddrSize];
+  uint8_t     switchData[switchDataSize];
+  char        switchStatus;
+  uint32_t    switchDelay;
+  bool        switchDelaySet;
+  char        switchName[chipNameSize+1];
+}switchStruct;
+
+const switchStruct switchClear = { {0,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0,0,0,0,0,0}, 'F', 0, FALSE, "" };
+
+switchStruct ds2406[maxSwitches] =
+{
+  { {0,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0,0,0,0,0,0}, 'F', 0, FALSE, "" },
+  { {0,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0,0,0,0,0,0}, 'F', 0, FALSE, "" }
+};
+
+OneWire ds(oneWireAddress);  // on pin 2 (a 4.7K resistor is necessary)
+Ticker  ds18; // timer to allow DS18B20 to be read
+Ticker  ds2406_0;
+Ticker  ds2406_1;
 
 // mDNS stuff
 // multicast DNS responder
@@ -328,30 +389,11 @@ void loop(void)
   noBytes = Udp.parsePacket();
 
   scanChips();
-  
-  if(setDebug > 0)
-  {
-    for(uint8_t b = 0; b < 3; b++)
-    {
-      Serial.print("chip[");
-      Serial.print(b);
-      Serial.print("] =");
-      for( i = 0; i < 8; i++)
-      {
-        Serial.write(' ');
-        Serial.print(chip[b][i], HEX);
-      }
-      Serial.println();
-    }
-  }
   updateState();
-  
   updateLCD();
 
   if ( noBytes ) 
-  {
     processUDP();
-  } // end if
 
 }
 

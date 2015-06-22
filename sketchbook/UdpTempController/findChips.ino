@@ -31,8 +31,8 @@ void findChips(void)
   chipCnt = 0;
   while(1)
   {
-    if ( !ds.search(chip[chipCnt])) {
-      if(setDebug > 0)
+    if ( !ds.search(chip)) {
+      if(setDebug & findChipsDebug)
       {
         Serial.println("No more addresses.");
         Serial.println();
@@ -43,56 +43,72 @@ void findChips(void)
       return;
     }
     
-    if(setDebug > 0)
+    if(setDebug & findChipsDebug)
     {
       Serial.print("ROM =");
       for( i = 0; i < 8; i++)
       {
         Serial.write(' ');
-        Serial.print(chip[chipCnt][i], HEX);
+        Serial.print(chip[i], HEX);
       }
     }
 
-    if (ds.crc8(chip[chipCnt], 7) != chip[chipCnt][7])
+    if (ds.crc8(chip, 7) != chip[7])
     {
+      if(setDebug & findChipsDebug)
+      {
         Serial.println("CRC is not valid!");
+      }
         return;
     }
 
-    Serial.println();
-    switch(chip[chipCnt][0]) // set DS18B20 to 9-bit resolution
+    if(setDebug & findChipsDebug)
+    {
+      Serial.println();
+    }
+    
+    switch(chip[0]) // set DS18B20 to 9-bit resolution
     {
       case ds18b20ID:
       {
+        for(i = 0; i < chipAddrSize; i++)
+          ds18b20.tempAddr[i] = chip[i];
         ds.reset();
-        ds.select(chip[chipCnt]);
+        ds.select(ds18b20.tempAddr);
         ds.write(0x4E); // write to scratchpad;
         ds.write(0x00); // low alarm
         ds.write(0x00); // high alarm
         ds.write(0x1F); // configuration register - 9 bit accuracy (0.5deg C)
         delay(5);
         ds.reset();
-        ds.select(chip[chipCnt]);
+        ds.select(ds18b20.tempAddr);
         ds.write(0x48); // copy scratchpad to EEPROM;
         delay(5);
-        if(setDebug > 0)
+        if(setDebug & findChipsDebug)
         {
-          Serial.print("chip[");
-          Serial.print(chipCnt);
-          Serial.println("] resolution set to 9-bit");
+          Serial.println("DS18B20 resolution set to 9-bit");
         }
+        for(i = 0; i < chipAddrSize; i++)
+          chip[i] = 0;
         break;
       }
 
       case ds2406ID:
       {
-        if((mode != 'A') && (mode != 'M') ) // if mode not set, turn switch off
+        for(i = 0; i < chipAddrSize; i++)
+          ds2406[chipCnt].switchAddr[i] = chip[i];
+        setState(chipCnt, ds2406PIOAoff);
+        if(setDebug & findChipsDebug)
         {
-          setState(chipCnt, ds2406PIOAoff);
+          Serial.print("DS2406[");
+          Serial.print(chipCnt);
+          Serial.println("] Turned OFF");
         }
+        for(i = 0; i < chipAddrSize; i++)
+          chip[i] = 0;
+        chipCnt++;
         break;
       }
     }
-    chipCnt++;
   }
 }

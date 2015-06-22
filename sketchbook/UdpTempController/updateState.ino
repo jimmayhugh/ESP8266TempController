@@ -30,18 +30,86 @@ void updateState(void)
 {
   if(mode == 'A')
   {
-    if(fahrenheit >= upperF)
+    if(ds18b20.tempFahrenheit >= upperF)
     {
-      setState(1, ds2406PIOAon); // cool things off
+      if(ds2406[upper].switchDelay == 0)
+      {
+        setState(upper, ds2406PIOAon); // cool things off
+        if(setDebug & switchDebug)
+          Serial.println("Set upper Switch immediate- ON");
+      }else if(ds2406[upper].switchDelaySet == FALSE){
+        if(setDebug & switchDebug)
+        {
+          Serial.print("set upperDelay = ");
+          Serial.println(ds2406[upper].switchDelay);
+        }
+        ds2406[upper].switchDelaySet = TRUE;
+        ds2406_0.attach_ms((ds2406[upper].switchDelay * 1000), startUpper);
+        startUpperTimer = millis();
+      }
     }else{
-      setState(1, ds2406PIOAoff);
+      if(setDebug & switchDebug)
+        Serial.println("Set upper - OFF, ");
+      setState(upper, ds2406PIOAoff);
     }
 
-    if(fahrenheit <= lowerF)
+    if(ds18b20.tempFahrenheit <= lowerF)
     {
-      setState(2, ds2406PIOAon); // heat things up
+      if(ds2406[lower].switchDelay == 0)
+      {
+        setState(lower, ds2406PIOAon); // heat things up
+        if(setDebug & switchDebug)
+          Serial.println("Set lower Switch immediate - ON");
+      }else if(ds2406[lower].switchDelaySet == FALSE){
+        if(setDebug & switchDebug)
+        {
+          Serial.print("set lowerDelay = ");
+          Serial.println(ds2406[lower].switchDelay);
+        }
+        ds2406[lower].switchDelaySet = TRUE;
+        ds2406_1.attach_ms((ds2406[lower].switchDelay * 1000), startLower);
+        startLowerTimer = millis();
+      }
     }else{
-      setState(2, ds2406PIOAoff);
+      if(setDebug & switchDebug)
+        Serial.println("lower - OFF");
+      setState(lower, ds2406PIOAoff);
     }
+  }
+}
+
+void startUpper(void)
+{
+  ds2406_0.detach();
+  if(ds18b20.tempFahrenheit >= upperF)
+  {
+    setState(upper, ds2406PIOAon); // cool things off
+  }else{
+    setState(upper, ds2406PIOAoff);
+  }
+  ds2406[upper].switchDelaySet = FALSE;
+  if(setDebug & switchDebug)
+  {
+    Serial.printf("set upper switch ON after a ");
+    Serial.print(millis() - startUpperTimer);
+    Serial.println(" delay");
+  }
+}
+
+void startLower(void)
+{
+  ds2406_1.detach();
+  if(ds18b20.tempFahrenheit <= lowerF)
+  {
+    setState(lower, ds2406PIOAon); // heat things up
+  }else{
+    setState(lower, ds2406PIOAoff);
+  }
+  ds2406[lower].switchDelaySet = FALSE;
+  if(setDebug & switchDebug)
+  {
+    Serial.printf("set lower switch ON after a ");
+    Serial.print(millis() - startLowerTimer);
+    Serial.println(" delay");
   }
 }

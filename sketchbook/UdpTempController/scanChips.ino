@@ -28,32 +28,8 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 void scanChips(void)
 {
-  chipCnt = 0;
-  do{
-    // the first ROM byte indicates which chip
-    switch (chip[chipCnt][0])
-    {
-      case ds18b20ID:
-        if(setDebug > 0)
-        {
-          Serial.println("  Chip = DS18B20");
-        }
-        getTemp(chipCnt);
-        break;
-
-      case ds2406ID:
-        if(setDebug > 0)
-        {
-          Serial.println("  Chip = DS2406+");
-        }
-        getState(chipCnt);
-        break;
-
-      default:
-        Serial.println("Device is not a valid family device.");
-        return;
-     }
-     chipCnt++;
-  }while(chipCnt < 3);
+  getState(0);
+  getState(1);
+  getTemp();
 }
 

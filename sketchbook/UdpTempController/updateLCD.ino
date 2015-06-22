@@ -27,7 +27,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 void updateLCD(void)
 {
-  if(setDebug > 0)
+  if(setDebug & lcdDebug)
   {
     Serial.println("Writing to LCD");
   }
@@ -59,15 +59,18 @@ void updateLCD(void)
   }
   delay(delayVal);
   lcd.setCursor(0, 2);
-  sprintf(lcdBuffer, "Temp: %d F, %d C", fahrenheit, celsius);
+  sprintf(lcdBuffer, "Temp: %d F, %d C", ds18b20.tempFahrenheit, ds18b20.tempCelsius);
   lcd.print(lcdBuffer);
   delay(delayVal);
+  if(setDebug & lcdDebug)
+    Serial.println(lcdBuffer);
   lcd.setCursor(0, 3);
-  sprintf(lcdBuffer, "Switch1:%c Switch2:%c", chipStatus[1], chipStatus[2]);
+  sprintf(lcdBuffer, "Switch1:%c Switch2:%c", ds2406[0].switchStatus, ds2406[1].switchStatus);
   lcd.print(lcdBuffer);
   delay(delayVal);
-  if(setDebug > 0)
+  if(setDebug & lcdDebug)
   {
+    Serial.println(lcdBuffer);
     Serial.println("Finished writing to LCD");
   }
 }
