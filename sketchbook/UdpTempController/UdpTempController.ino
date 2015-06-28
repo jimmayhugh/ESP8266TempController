@@ -23,6 +23,11 @@ V0.0.7 - Added Debug Mode and set domain name
 V0.0.8 - Added time delay in seconds for switches.
          Added additional UDP Commands.
          Added individual debug values for troubleshooting purposes.
+
+V0.0.9 - Added logging to remote port
+         Display Error message on LCD if unit fails to connect to intranet
+         Show ESP8266 MAC Address in Serial Monitor
+         Display EEPROM Values in Serial Monitor on startup
          
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -60,7 +65,6 @@ Configuration :
 #include <Ticker.h>
 #include <OneWire.h>
 #include <Wire.h>
-#include <ESP8266MCP23017.h>
 #include <ESP8266LCD.h>
 #include <EEPROM.h>
 #include <EEPROMAnything.h>
@@ -81,11 +85,12 @@ const uint16_t findChipsDebug = 0x0020;
 
 uint16_t setDebug = 0x0000;
 
-char packetBuffer[512]; //buffer to hold incoming and outgoing packets
+char packetBuffer[512]; // buffer to hold incoming and outgoing packets
+char updateBuffer[128]; // buffer to hold updateStatus
 char lcdBuffer[21];
 
 int16_t noBytes, packetCnt;
-int16_t delayVal = 25, sDelayVal = 5000;
+int16_t delayVal = 25, sDelayVal = 5000, uDelayVal = 60;
 int16_t lowerC, lowerF, upperC, upperF;
 uint32_t lowerDelay, upperDelay, tempDelay, startUpperTimer, startLowerTimer;
 int8_t i;
@@ -127,7 +132,9 @@ const uint8_t WiFiStrCnt = 32;  // max string length
 const uint8_t useWiFi = 0xAA;
 const uint8_t useUDPport = 0xAA;
 const uint8_t udpPortCnt = 4;
+const uint8_t macCnt = 6;
 uint8_t wifiSet = 0, udpSet = 0;
+uint8_t macAddress[macCnt] = {0,0,0,0,0,0};
 char ssid[WiFiStrCnt]   = "SSID";        // your network SSID (name)
 char passwd[WiFiStrCnt] = "PASSWD";      // your network password
 uint16_t udpPort = 0x0000;                // local port to listen for UDP packets
@@ -146,6 +153,11 @@ ESP8266LCD lcd = ESP8266LCD(7);
 
 // A UDP instance to let us send and receive packets over UDP
 WiFiUDP Udp;
+
+// A UDP instance to allow interval updates to be sent
+IPAddress statusIP;
+uint16_t  statusPort;
+WiFiUDP udpStatus;
 
 // OneWire Stuff
 // Family codes
@@ -179,8 +191,9 @@ const uint8_t switchDataSize  = 13; // switch data
 const uint8_t chipNameSize    = 15;
 const uint8_t cDelayVal       = 150; //delay reading DS18B20
 
-bool     tempConversion = FALSE;
-
+bool  tempConversion = FALSE;
+bool  sendStatus = FALSE;
+bool  softReset = FALSE;    
 // Temp Stuff
 typedef struct
 {
@@ -221,6 +234,7 @@ OneWire ds(oneWireAddress);  // on pin 2 (a 4.7K resistor is necessary)
 Ticker  ds18; // timer to allow DS18B20 to be read
 Ticker  ds2406_0;
 Ticker  ds2406_1;
+Ticker  update;
 
 // mDNS stuff
 // multicast DNS responder
@@ -230,13 +244,27 @@ MDNSResponder mdns;
 void setup(void)
 {
   // Open serial communications and wait for port to open:
-  ESP.wdtDisable();
+  ESP.wdtDisable(); // disable the watchdog Timer
   
   Serial.begin(115200);
   delay(sDelayVal);
 
+  setDebug |= eepromDebug; // disply eeprom statue during startup
   EEPROM.begin(EEPROMsize);
   showEEPROM();
+  setDebug &= ~eepromDebug;
+
+  Serial.print("MAC Address = ");
+  uint8_t *mac = WiFi.macAddress(macAddress);
+  for(uint8_t q = 0; q < macCnt; q++)
+  {
+    if(mac[q] < 0x10)
+      Serial.print("0");
+    Serial.print(mac[q], HEX);
+    if(q < (macCnt - 1))
+      Serial.print(":");
+  }
+  Serial.println();
 
   lcd.begin(lcdChars, lcdRows);
   lcd.clear();
@@ -349,8 +377,25 @@ void setup(void)
     delay(500);
     Serial.print(".");
     tries++;
-    if (tries > 30){
-      break;
+    if (tries > 30)
+    {
+      Serial.println();
+      Serial.println("Unable to Connect - Check and restart");
+      lcd.clear();
+      lcd.home();
+      lcd.print(" UNABLE TO CONNECT  ");
+      lcd.setCursor(0, 1);
+      lcd.print("    PLEASE CHECK    ");
+      lcd.setCursor(0, 2);
+      lcd.print("      AND RESET     ");
+      while(1)
+      {
+        lcd.noDisplay();
+        delay(1000);
+        lcd.display();
+        delay(1000);
+      }
+//      break;
     }
   }
   Serial.println();
@@ -395,6 +440,19 @@ void loop(void)
   if ( noBytes ) 
     processUDP();
 
+  if ( sendStatus == TRUE )
+  {
+    statusUpdate();
+    sendStatus = FALSE;
+  }
+
+/*
+  if(softReset == TRUE)
+  {
+    delay(2000);
+    ESP.reset();
+  }
+*/
 }
 
 

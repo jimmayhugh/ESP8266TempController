@@ -1,9 +1,9 @@
 <?php
 /*
-UdpTempController - TestUdpTempController.php
+UdpTempController - TestUdpTempControllerStatus.php
 
 Version 0.0.1
-Last Modified 06/09/2015
+Last Modified 06/26/2015
 By Jim Mayhugh
 
 Permission is hereby granted, free of charge, to any person obtaining
@@ -59,7 +59,9 @@ if(($options = socket_get_option($sock, SOL_SOCKET, SO_RCVTIMEO, array('sec'=>10
   echo "SO_RCVTIMEO = 5 seconds\n";
 }
 
-$localURL = "esp8266.local"; 
+$localURL = "esp8266.local";
+$localIP;
+$localPort; 
 $count = 0;
 $remote_port = '2652';
 $secCnt = 0;
@@ -92,52 +94,30 @@ if(isset($argv[1]))
 }else{
   die("ERROR - Requires IP Address or domain.local, UDP Port optional - EXITING\n");
 }
-/*
-if(isset($execArray[2]))
-{
-  $remote_port = $execArray[2];
-}
-*/
+
 if(isset($argv[2]))
 {
   $remote_port = $argv[2];
 }
 
-echo "Using address $remote_ip and port $remote_port\n"; 
+socket_getsockname ( $sock, $localIP, $localPort );
+echo "setting startUdpUpdateStatus at Remote:$remote_ip:$remote_port using Local:$localIP:$localPort\n"; 
 
+$in = "R\n";
+
+socket_sendto($sock, $in , 100 , 0 , $remote_ip , $remote_port);
 
  
 while(1)
 {    
 
-    //Take some input to send
-    echo 'Enter a message to send : ';
-    $in = fgets(STDIN);
-    if($in === "break\n" || $in === "quit\n")
-      break; 
-    $out = $in."\n";
-
-
-    socket_sendto($sock, $in , 100 , 0 , $remote_ip , $remote_port);
-    socket_recvfrom($sock, $buf, 2048, MSG_WAITALL, $remote_ip, $remote_port);
+    $result = socket_recvfrom($sock, $buf, 2048, MSG_WAITALL, $remote_ip, $remote_port);
     
-    $resultStr = "";
-    if($buf === "=")
+    if( $result !== FALSE )
     {
-      $in = "=";
-      socket_sendto($sock, $in , 100 , 0 , $remote_ip , $remote_port);
-      socket_recvfrom($sock, $buf, 2048, MSG_WAITALL, $remote_ip, $remote_port);
-
-      while($buf !== '+')
-      {
-        $resultStr .= $buf;
-        socket_sendto($sock, $in , 100 , 0 , $remote_ip , $remote_port);
-        socket_recvfrom($sock, $buf, 2048, MSG_WAITALL, $remote_ip, $remote_port);
-      }
-    }else{
-      $resultStr .= $buf;
+      $now = date("m/d/Y Hi");
+      echo "\$buf: $buf at $now\n";
     }
-    echo "\$resultStr: \n$resultStr\n";
 }
 
 echo "Closing socket and exiting\n";
