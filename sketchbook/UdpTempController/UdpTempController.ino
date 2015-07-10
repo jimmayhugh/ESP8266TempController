@@ -1,8 +1,8 @@
 /*
 UdpTempController.ino
 
-Version 0.0.5
-Last Modified 06/22/2015
+Version 0.0.10
+Last Modified 07/09/2015
 By Jim Mayhugh
 
 V0.0.3 - added upper and lower temp control to UDP commands
@@ -73,7 +73,7 @@ Configuration :
 #include <stdint.h>
 
 int status = WL_IDLE_STATUS;
-const uint8_t domainCnt = 21;
+const uint8_t domainCnt = 15;
 const uint8_t usemDNS = 0xAA;
 
 const uint16_t udpDebug       = 0x0001;
@@ -193,7 +193,8 @@ const uint8_t cDelayVal       = 150; //delay reading DS18B20
 
 bool  tempConversion = FALSE;
 bool  sendStatus = FALSE;
-bool  softReset = FALSE;    
+bool  softReset = FALSE;
+bool  udpStatusSet = FALSE;    
 // Temp Stuff
 typedef struct
 {

@@ -100,12 +100,26 @@ if(isset($argv[2]))
   $remote_port = $argv[2];
 }
 
-socket_getsockname ( $sock, $localIP, $localPort );
-echo "setting startUdpUpdateStatus at Remote:$remote_ip:$remote_port using Local:$localIP:$localPort\n"; 
+exec('sudo ifconfig',$catch);
+
+foreach($catch as $line)
+{
+  if(preg_match("/inet addr/i",$line))
+  {
+//    echo $line."\n";
+    list($t, $ip) = preg_split("/:/", $line);
+    list($ip, $t) = preg_split("/[\s,]+/", $ip);
+//    echo 'IP is '.$ip."\n";
+    break;
+  }
+}
 
 $in = "R\n";
 
 socket_sendto($sock, $in , 100 , 0 , $remote_ip , $remote_port);
+
+socket_getsockname ( $sock, $localIP, $localPort );
+echo "startUdpUpdateStatus at $remote_ip:$remote_port using $ip:$localPort\n"; 
 
  
 while(1)

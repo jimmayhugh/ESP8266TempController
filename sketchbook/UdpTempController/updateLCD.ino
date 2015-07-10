@@ -37,23 +37,25 @@ void updateLCD(void)
   lcd.print(lcdBuffer);
   delay(delayVal);
   lcd.setCursor(0, 1);
+  lcd.print(mDNSdomain);
+  lcd.setCursor(16, 1);
   switch(mode)
   {
     case 'A':
     {
-      lcd.print("Automatic           ");      
+      lcd.print("Auto");      
       break;
     }
     
     case 'M':
     {
-      lcd.print("Manual              ");      
+      lcd.print("Man ");      
       break;
     }
     
     default:
     {
-      lcd.print("Uninitialized       ");      
+      lcd.print("None");      
       break;
     }
   }

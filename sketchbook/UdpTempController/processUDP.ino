@@ -177,12 +177,18 @@ void processUDP(void)
 
     case 'R':
     {
+      if(udpStatusSet == TRUE)
+      {
+        update.detach();
+        udpStatus.stop();
+      }
       statusIP = Udp.remoteIP();
       statusPort = Udp.remotePort();
 //      statusPort = atoi(&packetBuffer[1]);
       udpStatus.begin(statusPort);
       startUdpStatusUpdate();
       packetCnt = sprintf(packetBuffer, "udpStatusUpdate begun at IP %d.%d.%d.%d, port %d", statusIP[0], statusIP[1], statusIP[2], statusIP[3], statusPort);
+      udpStatusSet = TRUE;
       break;
     }
 
