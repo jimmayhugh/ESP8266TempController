@@ -1,5 +1,5 @@
 /*
-UdpTempController - printWifiStatus.ino
+UdpTempController - mdnsUpdate.ino
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -10,8 +10,7 @@ permit persons to whom the Software is furnished to do so, subject to
 the following conditions:
 
 The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
+included in all copies or substantial portions of the Software.0
 This software uses multiple libraries that are subject to additional
 licenses as defined by the author of that software. It is the user's
 and developer's responsibility to determine and adhere to any additional
@@ -26,22 +25,22 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-void printWifiStatus()
-{
-  // print the SSID of the network you're attached to:
-  Serial.print("SSID: ");
-  Serial.println(WiFi.SSID());
 
-  // print your WiFi shield's IP address:
-  IPAddress ip = WiFi.localIP();
-  Serial.print("IP Address: ");
-  Serial.println(ip);
+void startMDNSupdate(void)
+{
+  if(setDebug & mdnsDebug)
+    Serial.println("Enter startMDNSupdate");
+  mdns.update();
+  mdnsServer.attach(mdnsUpdateDelay, mdnsStatus);
+  mdnsUpdateStatus = FALSE;
+  if(setDebug & mdnsDebug)
+    Serial.println("Exit startMDNSupdate");
 }
 
-void strToIP(uint8_t *ipArray, char *str)
+
+void mdnsStatus(void)
 {
-  ipArray[0] = (uint8_t) atoi(str);
-  ipArray[1] = (uint8_t) atoi((char *) &str[4]);
-  ipArray[2] = (uint8_t) atoi((char *) &str[8]);
-  ipArray[3] = (uint8_t) atoi((char *) &str[12]);
+  mdnsServer.detach();
+  mdnsUpdateStatus = TRUE;
 }
+

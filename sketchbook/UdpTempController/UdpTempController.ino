@@ -1,34 +1,40 @@
 /*
 UdpTempController.ino
 
-Version 0.0.10
-Last Modified 07/09/2015
+Version 0.0.11
+Last Modified 07/31/2015
 By Jim Mayhugh
 
-V0.0.3 - added upper and lower temp control to UDP commands
-         added updateState.ino
+V0.0.3 -  added upper and lower temp control to UDP commands
+          added updateState.ino
 
-V0.0.4 - added findChips.ino to discover chips and set DS18B20
-          to 9-bit resolution
-         added setDebug for serial debug output 0 = no debug, 1 or higher = debug
+V0.0.4 -  added findChips.ino to discover chips and set DS18B20
+           to 9-bit resolution
+          added setDebug for serial debug output 0 = no debug, 1 or higher = debug
 
-V0.0.5 - Added mode control
+V0.0.5 -  Added mode control
 
-V0.0.6 - using Ticker.h for DS18B20 reads
+V0.0.6 -  using Ticker.h for DS18B20 reads
 
-V0.0.7 - Added Debug Mode and set domain name
-         Added setting initial SSID, PASSWD and UDP port via Serial Monitor
-          and saving to EEPROM.
+V0.0.7 -  Added Debug Mode and set domain name
+          Added setting initial SSID, PASSWD and UDP port via Serial Monitor
+           and saving to EEPROM.
 
-V0.0.8 - Added time delay in seconds for switches.
-         Added additional UDP Commands.
-         Added individual debug values for troubleshooting purposes.
+V0.0.8 -  Added time delay in seconds for switches.
+          Added additional UDP Commands.
+          Added individual debug values for troubleshooting purposes.
 
-V0.0.9 - Added logging to remote port
-         Display Error message on LCD if unit fails to connect to intranet
-         Show ESP8266 MAC Address in Serial Monitor
-         Display EEPROM Values in Serial Monitor on startup
-         
+V0.0.9 -  Added logging to remote port
+          Display Error message on LCD if unit fails to connect to intranet
+          Show ESP8266 MAC Address in Serial Monitor
+          Display EEPROM Values in Serial Monitor on startup
+
+V0.0.10 - Changed 1-Wire Data line to GPIO12, as GPIO2 is a;so the Alternate TX
+           pin when loading software.
+
+V0.0.11 - Added staticIP, staticGateway, and staticSubnet in EPROM to prevent
+           connection loss when DHCP expires
+
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
 "Software"), to deal in the Software without restriction, including
@@ -68,12 +74,14 @@ Configuration :
 #include <ESP8266LCD.h>
 #include <EEPROM.h>
 #include <EEPROMAnything.h>
+//#include <ESP8266Bonjour.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 
 int status = WL_IDLE_STATUS;
 const uint8_t domainCnt = 15;
+const uint8_t bonjourCnt = 50;
 const uint8_t usemDNS = 0xAA;
 
 const uint16_t udpDebug       = 0x0001;
@@ -82,6 +90,7 @@ const uint16_t switchDebug    = 0x0004;
 const uint16_t lcdDebug       = 0x0008;
 const uint16_t eepromDebug    = 0x0010;
 const uint16_t findChipsDebug = 0x0020;
+const uint16_t mdnsDebug      = 0x0040;
 
 uint16_t setDebug = 0x0000;
 
@@ -101,6 +110,7 @@ uint8_t chipStatus[3];
 char *delim =",";
 char *result = NULL;
 char mDNSdomain[domainCnt] = "ESP8266";
+char bonjourBuf[bonjourCnt] = "";
 uint8_t chipCnt = 0;
 uint8_t mode = 0xFF, mDNSset;
 
@@ -122,6 +132,10 @@ const uint16_t EEs0DelaySet = 0x0100; // 0xAA = set, anything else is uninitiali
 const uint16_t EEs0Delay    = 0x0110; // Switch1 Delay
 const uint16_t EEs1DelaySet = 0x0120; // 0xAA = set, anything else is uninitialized
 const uint16_t EEs1Delay    = 0x0130; // Switch1 Delay
+const uint16_t EEipSet      = 0x0140; // 0xAA = set, anything else is uninitialized
+const uint16_t EEipAddress  = 0x0150; // static IP Address 
+const uint16_t EEipGateway  = 0x0160; // static IP gateway
+const uint16_t EEipSubnet   = 0x0170; // static IP subnet
 
 const uint8_t useS0 = 0xAA;
 const uint8_t useS1 = 0xAA;
@@ -129,6 +143,7 @@ uint8_t s0Set = 0, s1Set = 0;
 
 // WiFi stuff
 const uint8_t WiFiStrCnt = 32;  // max string length
+const uint8_t ipStrCnt = 20;
 const uint8_t useWiFi = 0xAA;
 const uint8_t useUDPport = 0xAA;
 const uint8_t udpPortCnt = 4;
@@ -137,7 +152,26 @@ uint8_t wifiSet = 0, udpSet = 0;
 uint8_t macAddress[macCnt] = {0,0,0,0,0,0};
 char ssid[WiFiStrCnt]   = "SSID";        // your network SSID (name)
 char passwd[WiFiStrCnt] = "PASSWD";      // your network password
+char *ipBuf = "255,255,255,255";
+char *gwBuf = "255,255,255,255";
+char *snBuf = "255,255,255,255";
 uint16_t udpPort = 0x0000;                // local port to listen for UDP packets
+
+const uint8_t useStaticIP = 0xAA;
+uint8_t staticIPset = 0;
+uint8_t ipArray[4] = {0 ,0, 0, 0};
+uint8_t gwArray[4] = {0 ,0, 0, 0};
+uint8_t snArray[4] = {0 ,0, 0, 0};
+
+/* 
+IPAddress staticIP(192, 168, 1, 164);
+IPAddress staticGateway(192, 168, 1, 1);
+IPAddress staticSubnet(255, 255, 255, 0);
+*/
+
+IPAddress staticIP(255,255,255,255);
+IPAddress staticGateway(255,255,255,255);
+IPAddress staticSubnet(255, 255, 255, 255);
 
 // LCD Stuff
 
@@ -184,17 +218,20 @@ const uint8_t ds2406End      = 0xff;
 const uint8_t switchStatusON   = 'N';
 const uint8_t switchStatusOFF  = 'F';
 
-const uint8_t oneWireAddress  =  2; // OneWire Bus Address - use pin 2 for TeensyNet board
-const uint8_t chipAddrSize    =  8; // 64bit OneWire Address
-const uint8_t tempDataSize    =  9; // temp data
-const uint8_t switchDataSize  = 13; // switch data
-const uint8_t chipNameSize    = 15;
+//const uint8_t oneWireAddress  =  12; // OneWire Bus Address - use pin GPIO12 for ESP-12 and ESP-07 boards
+const uint8_t oneWireAddress  =   2; // OneWire Bus Address - use pin GPIO2 for ESP-01 board
+
+const uint8_t chipAddrSize    =   8; // 64bit OneWire Address
+const uint8_t tempDataSize    =   9; // temp data
+const uint8_t switchDataSize  =  13; // switch data
+const uint8_t chipNameSize    =  15;
 const uint8_t cDelayVal       = 150; //delay reading DS18B20
 
 bool  tempConversion = FALSE;
 bool  sendStatus = FALSE;
 bool  softReset = FALSE;
-bool  udpStatusSet = FALSE;    
+bool  udpStatusSet = FALSE;
+bool  mdnsUpdateStatus = FALSE;    
 // Temp Stuff
 typedef struct
 {
@@ -236,10 +273,13 @@ Ticker  ds18; // timer to allow DS18B20 to be read
 Ticker  ds2406_0;
 Ticker  ds2406_1;
 Ticker  update;
+Ticker  mdnsServer;
 
 // mDNS stuff
 // multicast DNS responder
 MDNSResponder mdns;
+uint16_t mdnsUpdateDelay = 10;
+char bonjourNameBuf[25];
 
 
 void setup(void)
@@ -331,6 +371,126 @@ void setup(void)
     updateEEPROM(EEWiFiSet);
   }
 
+  if(staticIPset != useStaticIP)
+  {
+    uint8_t z = 0;
+    
+    Serial.print("Enter Static IP:");
+    while(1)
+    {
+      while(Serial.available())
+      {
+        ipBuf[z] = Serial.read();
+        if( (ipBuf[z] == 0x0A) || (ipBuf[z] == 0x0D) || (ipBuf[z] == 0x00) )
+        {
+          ipBuf[z] = 0x00;
+          break;
+        }
+        z++;
+        if(z >= ipStrCnt)
+        {
+          ipBuf[z] = 0x00;
+          break;
+        } 
+      }
+      if(ipBuf[z] == 0x00)
+        break;
+    }
+    Serial.println(ipBuf); 
+    strToIP(ipArray, ipBuf);
+    staticIP[0] = ipArray[0];
+    staticIP[1] = ipArray[1];
+    staticIP[2] = ipArray[2];
+    staticIP[3] = ipArray[3];
+    Serial.print("staticIP = ");
+    Serial.println(staticIP);
+
+    z = 0;
+    
+    while(Serial.available())
+      Serial.read(); // flush the buffer
+      
+    Serial.print("Enter Static Gateway:");
+    while(1)
+    {
+      while(Serial.available())
+      {
+        gwBuf[z] = Serial.read();
+        Serial.write(gwBuf[z]);
+        if( (gwBuf[z] == 0x0A) || (gwBuf[z] == 0x0D) || (gwBuf[z] == 0x00) )
+        {
+          Serial.print("gwBuf[");
+          Serial.print(z);
+          Serial.print("] = 0x");
+          Serial.println(gwBuf[z], HEX);
+          gwBuf[z] = 0x00;
+          Serial.println("EOT");
+          break;
+        }
+        z++;
+        if(z >= ipStrCnt)
+        {
+          Serial.println("String Too Long");
+          gwBuf[z] = 0x00;
+          break;
+        } 
+      }
+      if(gwBuf[z] == 0x00)
+      {
+        Serial.println("EOL");
+        break;
+      }
+    }
+    Serial.println(gwBuf); 
+    strToIP(gwArray, gwBuf);
+    staticGateway[0] = gwArray[0];
+    staticGateway[1] = gwArray[1];
+    staticGateway[2] = gwArray[2];
+    staticGateway[3] = gwArray[3];
+    Serial.print("staticGateway = ");
+    Serial.println(staticGateway);
+
+    z = 0;
+    
+    while(Serial.available())
+      Serial.read(); // flush the buffer
+      
+    Serial.print("Enter Static subnet:");
+    while(1)
+    {
+      while(Serial.available())
+      {
+        snBuf[z] = Serial.read();
+        if( (snBuf[z] == 0x0A) || (snBuf[z] == 0x0D) || (snBuf[z] == 0x00) )
+        {
+          snBuf[z] = 0x00;
+          break;
+        }
+        z++;
+        if(z >= ipStrCnt)
+        {
+          snBuf[z] = 0x00;
+          break;
+        } 
+      }
+      if(snBuf[z] == 0x00)
+        break;
+    }
+    Serial.println(snBuf); 
+    strToIP(snArray, snBuf);
+    staticSubnet[0] = snArray[0];
+    staticSubnet[1] = snArray[1];
+    staticSubnet[2] = snArray[2];
+    staticSubnet[3] = snArray[3];
+    Serial.print("staticSubnet = ");
+    Serial.println(staticSubnet);
+    staticIPset = useStaticIP;
+    updateEEPROM(EEipSet);
+  }
+    
+  while(Serial.available())
+    Serial.read(); // flush the buffer
+        
   if(udpSet != useUDPport)
   {
     uint8_t z = 0;
@@ -401,11 +561,35 @@ void setup(void)
   }
   Serial.println();
 
+  WiFi.config(staticIP, staticGateway, staticSubnet);
+  IPAddress ip = WiFi.localIP();
+  Serial.print("Connected to wifi at IP Address: ");
+  Serial.println(ip);
+
+/*
+  if(ESP8266Bonjour.begin(bonjourNameBuf))
+  {
+    Serial.println("Bonjour Service started");
+    sprintf(bonjourBuf, "%s._discover", bonjourNameBuf);
+    ESP8266Bonjour.addServiceRecord(bonjourBuf, udpPort, MDNSServiceUDP);
+//    I2CEEPROM_writeAnything(I2CEEPROMbjAddr, bonjourNameBuf, I2C0x50);
+  }else{
+    Serial.println(F("Bonjour Service failed"));
+  }
+  ESP8266Bonjour.run();
+*/
   // Set up mDNS responder:
   // - first argument is the domain name, in this example
   //   the fully-qualified domain name is "esp8266.local"
   // - second argument is the IP address to advertise
   //   we send our IP address on the WiFi network
+
+
+  if(mDNSset != usemDNS)
+  {
+    sprintf(mDNSdomain, "%s%d", mDNSdomain, ip[3]);
+  }  
+
   if (!mdns.begin(mDNSdomain, WiFi.localIP()))
   {
     Serial.println("Error setting up MDNS responder!");
@@ -413,17 +597,15 @@ void setup(void)
       delay(1000);
     }
   }
-  Serial.println("mDNS responder started");
-
+  startMDNSupdate();
+  Serial.print("mDNS responder started with ");
+  Serial.println(mDNSdomain);
 
   if(setDebug > 0)
   {
     printWifiStatus();
   }
 
-  Serial.print("Connected to wifi at IP Address: ");
-  IPAddress ip = WiFi.localIP();
-  Serial.println(ip);
   Serial.print("Udp server started at port at ");
   Serial.println(udpPort);
   Udp.begin(udpPort);
@@ -447,13 +629,8 @@ void loop(void)
     sendStatus = FALSE;
   }
 
-/*
-  if(softReset == TRUE)
-  {
-    delay(2000);
-    ESP.reset();
-  }
-*/
+  if ( mdnsUpdateStatus == TRUE )
+    startMDNSupdate();
 }
 
 

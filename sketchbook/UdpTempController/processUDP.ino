@@ -126,52 +126,42 @@ void processUDP(void)
     {
       uint8_t setDomain = 0, y;
 
-      for(y = 0; y < domainCnt; y++)
+      if((packetBuffer[1] == ' ') && (isalnum(packetBuffer[2])) )
       {
-        if(isalnum(packetBuffer[y+2]))
-        {
-          if(setDebug & udpDebug)
-            Serial.print(packetBuffer[y+2]);
-          continue;
-        }else if( (packetBuffer[y+2] == 0x00) || 
-                  (packetBuffer[y+2] == 0x0A) ||
-                  (packetBuffer[y+2] == 0x0D)
-                ){
-          if(setDebug & udpDebug)
-            Serial.println();
-          setDomain = 1;
-          break;
-        }else{
-          if(setDebug & udpDebug)
-          {
-            if(packetBuffer[y+2] < 0x10)
-            {
-              Serial.print(", 0x0");
-            }else{
-              Serial.print(", 0x0");
-            }
-            Serial.print(packetBuffer[y+2], HEX);
-          }
-          break;
-        }
-      }
-
-      if(setDomain == 1)
-      {
-        mDNSset = usemDNS;
-        for(y = 0; y < domainCnt; y++) // clear domain name buffer
-          mDNSdomain[y] = 0;
         for(y = 0; y < domainCnt; y++)
         {
-          if(isalnum(packetBuffer[y+2])) // move domain name to domain buffer
-            mDNSdomain[y] = packetBuffer[y+2];
+          if(isalnum(packetBuffer[y+2]))
+          {
+            if(setDebug & udpDebug)
+              Serial.print(packetBuffer[y+2]);
+            continue;
+          }else if( ((packetBuffer[y+2] == 0x00) || 
+                    (packetBuffer[y+2] == 0x0A) ||
+                    (packetBuffer[y+2] == 0x0D)) &&
+                    y > 0
+                  ){
+            if(setDebug & udpDebug)
+              Serial.println();
+            setDomain = 1;
+            break;
+          }
         }
-        packetCnt = sprintf(packetBuffer, "mDNSdomain = %s", mDNSdomain);
-        updateEEPROM(EEmDNSset);
-        softReset = TRUE;
-      }else{
-        packetCnt = sprintf(packetBuffer, "%s", "Invalid Domain Name");
+
+        if(setDomain == 1)
+        {
+          mDNSset = usemDNS;
+          for(y = 0; y < domainCnt; y++) // clear domain name buffer
+            mDNSdomain[y] = 0;
+          for(y = 0; y < domainCnt; y++)
+          {
+            if(isalnum(packetBuffer[y+2])) // move domain name to domain buffer
+              mDNSdomain[y] = packetBuffer[y+2];
+          }
+          updateEEPROM(EEmDNSset);
+          softReset = TRUE;
+        }
       }
+      packetCnt = sprintf(packetBuffer, "mDNSdomain = %s", mDNSdomain);
       break;
     }
 
@@ -321,8 +311,8 @@ void processUDP(void)
 
     default:
     {
-      packetCnt = sprintf(packetBuffer, "%d, %d, %c, %c", ds18b20.tempCelsius, ds18b20.tempFahrenheit,
-                                                          ds2406[upper].switchStatus, ds2406[lower].switchStatus);
+      packetCnt = sprintf(packetBuffer, "%d, %d, %c, %c, %s", ds18b20.tempCelsius, ds18b20.tempFahrenheit,
+                                                          ds2406[upper].switchStatus, ds2406[lower].switchStatus, mDNSdomain);
       break;
     }
   }

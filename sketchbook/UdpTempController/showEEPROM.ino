@@ -34,6 +34,13 @@ void showEEPROM(void)
   EEPROM_readAnything(EEUpperF, upperF);
   EEPROM_readAnything(EEMode, mode);
   EEPROM_readAnything(EEmDNSset, mDNSset);
+  EEPROM_readAnything(EEipSet, staticIPset);
+  if(staticIPset == useStaticIP)
+  {
+    EEPROM_readAnything(EEipAddress, staticIP);
+    EEPROM_readAnything(EEipGateway, staticGateway);
+    EEPROM_readAnything(EEipSubnet, staticSubnet);
+  }
   if(mDNSset == usemDNS)  
     EEPROM_readAnything(EEmDNSdomain, mDNSdomain);
   EEPROM_readAnything(EEWiFiSet, wifiSet);
@@ -95,12 +102,25 @@ void showEEPROM(void)
       }
     }
     Serial.println();
+    delay(100);
     Serial.print("mDNSdomain = ");
     Serial.println(mDNSdomain);
+    delay(100);
     Serial.print("ssid = ");
     Serial.println(ssid);
+    delay(100);
     Serial.print("passwd = ");
     Serial.println(passwd);
+    delay(100);
+    Serial.print("staticIP = ");
+    Serial.println(staticIP);
+    delay(100);
+    Serial.print("staticGateway = ");
+    Serial.println(staticGateway);
+    delay(100);
+    Serial.print("staticSubnet = ");
+    Serial.println(staticSubnet);
+    delay(100);
     Serial.print("udpPort = ");
     Serial.println(udpPort);
   }
@@ -148,22 +168,37 @@ void updateEEPROM(uint16_t level)
       break;
     }
 
+    case EEipSet:
+    {
+      EEPROM_writeAnything(EEipSet, staticIPset);
+      for(uint8_t x = 0; x < 4; x++)
+      {
+        EEPROM_writeAnything(EEipAddress, staticIP);
+        EEPROM_writeAnything(EEipGateway, staticGateway);
+        EEPROM_writeAnything(EEipSubnet, staticSubnet);
+      }
+      break;
+    }
+
     case EEuseUDPport:
     {
       EEPROM_writeAnything(EEuseUDPport, udpSet);
       EEPROM_writeAnything(EEudpPort, udpPort);
+      break;
     }
 
     case EEs0Delay:
     {
       EEPROM_writeAnything(EEs0DelaySet, s0Set);
       EEPROM_writeAnything(EEs0Delay, ds2406[0].switchDelay);
+      break;
     }
 
     case EEs1Delay:
     {
       EEPROM_writeAnything(EEs1DelaySet, s1Set);
       EEPROM_writeAnything(EEs1Delay, ds2406[1].switchDelay);
+      break;
     }
   }
   EEPROM.commit();
