@@ -1,8 +1,8 @@
 /*
 UdpTempController.ino
 
-Version 0.0.11
-Last Modified 07/31/2015
+Version 0.0.12
+Last Modified 08/01/2015
 By Jim Mayhugh
 
 V0.0.3 -  added upper and lower temp control to UDP commands
@@ -29,11 +29,15 @@ V0.0.9 -  Added logging to remote port
           Show ESP8266 MAC Address in Serial Monitor
           Display EEPROM Values in Serial Monitor on startup
 
-V0.0.10 - Changed 1-Wire Data line to GPIO12, as GPIO2 is a;so the Alternate TX
+V0.0.10 - Changed 1-Wire Data line to GPIO12, as GPIO2 is also the Alternate TX
            pin when loading software.
 
 V0.0.11 - Added staticIP, staticGateway, and staticSubnet in EPROM to prevent
-           connection loss when DHCP expires
+           connection loss when DHCP expires. Values MUST be entered as
+           "xxx.xxx.xxx.xxx", using leading zeros.
+
+V0.0.12 - Can select Static IP or DHCP on initial power-up via Serial monitor.
+           1-Wire data line reset to GPIO2 to accomodate ESP-01 board
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -158,6 +162,7 @@ char *snBuf = "255,255,255,255";
 uint16_t udpPort = 0x0000;                // local port to listen for UDP packets
 
 const uint8_t useStaticIP = 0xAA;
+const uint8_t useDHCP = 0x55;
 uint8_t staticIPset = 0;
 uint8_t ipArray[4] = {0 ,0, 0, 0};
 uint8_t gwArray[4] = {0 ,0, 0, 0};
@@ -371,126 +376,168 @@ void setup(void)
     updateEEPROM(EEWiFiSet);
   }
 
-  if(staticIPset != useStaticIP)
+  if( (staticIPset != useStaticIP) && (staticIPset != useDHCP) )
   {
-    uint8_t z = 0;
-    
-    Serial.print("Enter Static IP:");
+    char c = 0x00;
+    Serial.print("Use DHCP?:");
     while(1)
     {
       while(Serial.available())
       {
-        ipBuf[z] = Serial.read();
-        if( (ipBuf[z] == 0x0A) || (ipBuf[z] == 0x0D) || (ipBuf[z] == 0x00) )
-        {
-          ipBuf[z] = 0x00;
-          break;
-        }
-        z++;
-        if(z >= ipStrCnt)
-        {
-          ipBuf[z] = 0x00;
-          break;
-        } 
-      }
-      if(ipBuf[z] == 0x00)
+        c = Serial.read();
         break;
+      }
+      if(c != 0x00)
+      {
+        Serial.println(c);
+        break;
+      }
     }
-    Serial.println(ipBuf); 
-    strToIP(ipArray, ipBuf);
-    staticIP[0] = ipArray[0];
-    staticIP[1] = ipArray[1];
-    staticIP[2] = ipArray[2];
-    staticIP[3] = ipArray[3];
-    Serial.print("staticIP = ");
-    Serial.println(staticIP);
 
-    z = 0;
-    
+    delay(100);
     while(Serial.available())
       Serial.read(); // flush the buffer
-      
-    Serial.print("Enter Static Gateway:");
-    while(1)
+          
+    switch(c)
     {
-      while(Serial.available())
+      case 'N':
+      case 'n':
       {
-        gwBuf[z] = Serial.read();
-        Serial.write(gwBuf[z]);
-        if( (gwBuf[z] == 0x0A) || (gwBuf[z] == 0x0D) || (gwBuf[z] == 0x00) )
-        {
-          Serial.print("gwBuf[");
-          Serial.print(z);
-          Serial.print("] = 0x");
-          Serial.println(gwBuf[z], HEX);
-          gwBuf[z] = 0x00;
-          Serial.println("EOT");
-          break;
-        }
-        z++;
-        if(z >= ipStrCnt)
-        {
-          Serial.println("String Too Long");
-          gwBuf[z] = 0x00;
-          break;
-        } 
-      }
-      if(gwBuf[z] == 0x00)
-      {
-        Serial.println("EOL");
-        break;
-      }
-    }
-    Serial.println(gwBuf); 
-    strToIP(gwArray, gwBuf);
-    staticGateway[0] = gwArray[0];
-    staticGateway[1] = gwArray[1];
-    staticGateway[2] = gwArray[2];
-    staticGateway[3] = gwArray[3];
-    Serial.print("staticGateway = ");
-    Serial.println(staticGateway);
+        uint8_t z = 0;
 
-    z = 0;
-    
-    while(Serial.available())
-      Serial.read(); // flush the buffer
-      
-    Serial.print("Enter Static subnet:");
-    while(1)
-    {
-      while(Serial.available())
-      {
-        snBuf[z] = Serial.read();
-        if( (snBuf[z] == 0x0A) || (snBuf[z] == 0x0D) || (snBuf[z] == 0x00) )
+        delay(100);
+        while(Serial.available())
+          Serial.read(); // flush the buffer
+
+        Serial.print("Enter Static IP:");
+        while(1)
         {
-          snBuf[z] = 0x00;
-          break;
+          while(Serial.available())
+          {
+            ipBuf[z] = Serial.read();
+            if( (ipBuf[z] == 0x0A) || (ipBuf[z] == 0x0D) || (ipBuf[z] == 0x00) )
+            {
+              ipBuf[z] = 0x00;
+              break;
+            }
+            z++;
+            if(z >= ipStrCnt)
+            {
+              ipBuf[z] = 0x00;
+              break;
+            } 
+          }
+          if(ipBuf[z] == 0x00)
+            break;
         }
-        z++;
-        if(z >= ipStrCnt)
+        Serial.println(ipBuf); 
+        strToIP(ipArray, ipBuf);
+        staticIP[0] = ipArray[0];
+        staticIP[1] = ipArray[1];
+        staticIP[2] = ipArray[2];
+        staticIP[3] = ipArray[3];
+        Serial.print("staticIP = ");
+        Serial.println(staticIP);
+
+        z = 0;
+        
+        while(Serial.available())
+          Serial.read(); // flush the buffer
+          
+        Serial.print("Enter Static Gateway:");
+        while(1)
         {
-          snBuf[z] = 0x00;
-          break;
-        } 
-      }
-      if(snBuf[z] == 0x00)
+          while(Serial.available())
+          {
+            gwBuf[z] = Serial.read();
+            Serial.write(gwBuf[z]);
+            if( (gwBuf[z] == 0x0A) || (gwBuf[z] == 0x0D) || (gwBuf[z] == 0x00) )
+            {
+              Serial.print("gwBuf[");
+              Serial.print(z);
+              Serial.print("] = 0x");
+              Serial.println(gwBuf[z], HEX);
+              gwBuf[z] = 0x00;
+              Serial.println("EOT");
+              break;
+            }
+            z++;
+            if(z >= ipStrCnt)
+            {
+              Serial.println("String Too Long");
+              gwBuf[z] = 0x00;
+              break;
+            } 
+          }
+          if(gwBuf[z] == 0x00)
+          {
+            Serial.println("EOL");
+            break;
+          }
+        }
+        Serial.println(gwBuf); 
+        strToIP(gwArray, gwBuf);
+        staticGateway[0] = gwArray[0];
+        staticGateway[1] = gwArray[1];
+        staticGateway[2] = gwArray[2];
+        staticGateway[3] = gwArray[3];
+        Serial.print("staticGateway = ");
+        Serial.println(staticGateway);
+
+        z = 0;
+        
+        while(Serial.available())
+          Serial.read(); // flush the buffer
+          
+        Serial.print("Enter Static subnet:");
+        while(1)
+        {
+          while(Serial.available())
+          {
+            snBuf[z] = Serial.read();
+            if( (snBuf[z] == 0x0A) || (snBuf[z] == 0x0D) || (snBuf[z] == 0x00) )
+            {
+              snBuf[z] = 0x00;
+              break;
+            }
+            z++;
+            if(z >= ipStrCnt)
+            {
+              snBuf[z] = 0x00;
+              break;
+            } 
+          }
+          if(snBuf[z] == 0x00)
+            break;
+        }
+        Serial.println(snBuf); 
+        strToIP(snArray, snBuf);
+        staticSubnet[0] = snArray[0];
+        staticSubnet[1] = snArray[1];
+        staticSubnet[2] = snArray[2];
+        staticSubnet[3] = snArray[3];
+        Serial.print("staticSubnet = ");
+        Serial.println(staticSubnet);
+        staticIPset = useStaticIP;
+        updateEEPROM(EEipSet);
         break;
+      }
+
+      case 'Y':
+      case 'y':
+      default:
+      {
+        staticIPset = useDHCP;
+        updateEEPROM(EEipSet);
+        break;
+      }
+      
     }
-    Serial.println(snBuf); 
-    strToIP(snArray, snBuf);
-    staticSubnet[0] = snArray[0];
-    staticSubnet[1] = snArray[1];
-    staticSubnet[2] = snArray[2];
-    staticSubnet[3] = snArray[3];
-    Serial.print("staticSubnet = ");
-    Serial.println(staticSubnet);
-    staticIPset = useStaticIP;
-    updateEEPROM(EEipSet);
-  }
-    
+  } 
+        
   while(Serial.available())
     Serial.read(); // flush the buffer
-        
+
   if(udpSet != useUDPport)
   {
     uint8_t z = 0;
@@ -561,7 +608,13 @@ void setup(void)
   }
   Serial.println();
 
-  WiFi.config(staticIP, staticGateway, staticSubnet);
+  if(staticIPset == useStaticIP)
+  {
+    WiFi.config(staticIP, staticGateway, staticSubnet);
+    Serial.print("Using Static IP - ");
+  }else{
+    Serial.print("Using DHCP - ");
+  }
   IPAddress ip = WiFi.localIP();
   Serial.print("Connected to wifi at IP Address: ");
   Serial.println(ip);
