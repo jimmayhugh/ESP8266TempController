@@ -41,3 +41,5 @@ Commands that include a numeric value have no intervening spaces. An example wou
 Commands that require a multi-character alpha-numeric string have an intervening space.
 As an example, to re-name the local url of the UdpTempController, the command would be `N "DomainName"`.
 
+##Web Page and MySql
+Included are web pages and a MySql file which can be used to create a web page that can monitor multiple ESP boards, display the results on a web page, save the results into a set of MySQL tables, and display a graph of the results. The updates to the page occur every two seconds, and updated data is inserted into the database every minute.
