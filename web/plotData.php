@@ -8,6 +8,7 @@
   {
     $ip_address=$_GET["ip_address"];
     $deviceName=$_GET["device_name"];
+    $tempType=$_GET["temptype"];
 //      echo "updateStatus.php: netID = $netID, service_port = $service_port, port_address = $port_address, netName = $netName <br />";
   }
   
@@ -15,6 +16,7 @@
   {
     $ip_address=$_POST["ip_address"];
     $deviceName=$_POST["device_name"];
+    $tempType=$_POST["temptype"];
 //      echo "updateStatus.php: netID = $netID, service_port = $service_port, port_address = $port_address, netName = $netName <br />";
   }
   
@@ -88,22 +90,22 @@
   {
     if($hotTest ==="")
     {
-      $hotTest = $obj->tempf;
-    }else if($obj->tempf > $hotTest){
-      $hotTest = $obj->tempf;
+      $hotTest = $obj->$tempType;
+    }else if($obj->$tempType > $hotTest){
+      $hotTest = $obj->$tempType;
     } 
     if($coldTest ==="")
     {
-      $coldTest = $obj->tempf;
-    }else if($obj->tempf < $coldTest){
-      $coldTest = $obj->tempf;
+      $coldTest = $obj->$tempType;
+    }else if($obj->$tempType < $coldTest){
+      $coldTest = $obj->$tempType;
     } 
     if($oldTime != NULL)
     {
       $secCnt = ($obj->time) - $oldTime;
-      $tempData->addDataEntry(array($obj->tempf, $secCnt ));
+      $tempData->addDataEntry(array($obj->$tempType, $secCnt ));
     }else{
-      $tempData->addDataEntry(array($obj->tempf, 0));
+      $tempData->addDataEntry(array($obj->$tempType, 0));
       $oldTime = $obj->time;
     }
   }
@@ -151,7 +153,12 @@
   }
 //  echo "tickMark = ".$tickMark."\n";
   $pTemp->setDimLabel(x, $interval);
-  $pTemp->setDimLabel(y, "Degrees");
+  if($tempType === "tempc")
+  {
+    $pTemp->setDimLabel(y, "Degrees Celsius");
+  }else{
+    $pTemp->setDimLabel(y, "Degrees Fahrenheit");
+  }
   $pTemp->set("terminal png size 1280,400"); 
   $pTemp->plotData( $tempData, 'lines', $tickMark,'','ls 1'); 
 //  $pTemp->plotData( $thData, 'lines', $tickMark,'','ls 2'); 

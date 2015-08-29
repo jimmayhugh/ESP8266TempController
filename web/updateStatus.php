@@ -29,21 +29,28 @@
     "<div id=\"temp\"; position: relative; width: 100%>
        <td align=\"center\" width=\"20%\">
          <font size=\"10\"><strong>".$udpType[4]."</strong></font><br />
+        </td>
+       <td align=\"center\" width=\"20%\">
+         Temperature
+         <br />
          <form method=\"post\" action=\"plotData.php\">
            <input type=\"hidden\" name=\"ip_address\" value=\"".$ip_Address."\">
            <input type=\"hidden\" name=\"device_name\" value=\"".$udpType[4]."\">
+           <input type=\"hidden\" name=\"temptype\" value=\"tempc\">
            <input type=\"submit\" value=\"GRAPH\">
          </form>
-       </td>
-       <td align=\"center\" width=\"20%\">
-         Temperature
-         <br /><br />
          <font size=\"10\"><strong>".$udpType[0]."&deg; C</strong></font>
          <br /><br />
        </td>
        <td align=\"center\" width=\"20%\">
          Temperature
-         <br /><br />
+         <br />
+         <form method=\"post\" action=\"plotData.php\">
+           <input type=\"hidden\" name=\"ip_address\" value=\"".$ip_Address."\">
+           <input type=\"hidden\" name=\"device_name\" value=\"".$udpType[4]."\">
+           <input type=\"hidden\" name=\"temptype\" value=\"tempf\">
+           <input type=\"submit\" value=\"GRAPH\">
+         </form>
          <font size=\"10\"><strong>".$udpType[1]."&deg; F</strong></font>
          <br /><br />
        </td>
