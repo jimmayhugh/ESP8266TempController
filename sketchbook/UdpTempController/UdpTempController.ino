@@ -1,8 +1,8 @@
 /*
 UdpTempController.ino
 
-Version 0.0.12
-Last Modified 08/01/2015
+Version 0.0.14
+Last Modified 9/03/2015
 By Jim Mayhugh
 
 V0.0.3 -  added upper and lower temp control to UDP commands
@@ -38,6 +38,10 @@ V0.0.11 - Added staticIP, staticGateway, and staticSubnet in EPROM to prevent
 
 V0.0.12 - Can select Static IP or DHCP on initial power-up via Serial monitor.
            1-Wire data line reset to GPIO2 to accomodate ESP-01 board
+
+V0.0.13 - Removed tempName and switchName from 1-wire structures
+
+V0.0.14 - Added code to read temp and switch settings
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -223,8 +227,8 @@ const uint8_t ds2406End      = 0xff;
 const uint8_t switchStatusON   = 'N';
 const uint8_t switchStatusOFF  = 'F';
 
-//const uint8_t oneWireAddress  =  12; // OneWire Bus Address - use pin GPIO12 for ESP-12 and ESP-07 boards
-const uint8_t oneWireAddress  =   2; // OneWire Bus Address - use pin GPIO2 for ESP-01 board
+const uint8_t oneWireAddress  =  12; // OneWire Bus Address - use pin GPIO12 for ESP-12 and ESP-07 boards
+//const uint8_t oneWireAddress  =   2; // OneWire Bus Address - use pin GPIO2 for ESP-01 board
 
 const uint8_t chipAddrSize    =   8; // 64bit OneWire Address
 const uint8_t tempDataSize    =   9; // temp data
@@ -244,12 +248,11 @@ typedef struct
   uint8_t     tempData[tempDataSize];
   int16_t     tempFahrenheit;
   int16_t     tempCelsius;
-  char        tempName[chipNameSize+1];
 }tempStruct;
 
-const tempStruct tempClear = { {0,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0,0}, 0, 0, "" };
+const tempStruct tempClear = { {0,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0,0}, 0, 0};
 
-tempStruct ds18b20 = { {0,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0,0}, 0, 0, "" };
+tempStruct ds18b20 = { {0,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0,0}, 0, 0};
 
 // SwitchStuff
 const uint8_t maxSwitches = 2;
@@ -262,15 +265,14 @@ typedef struct
   char        switchStatus;
   uint32_t    switchDelay;
   bool        switchDelaySet;
-  char        switchName[chipNameSize+1];
 }switchStruct;
 
-const switchStruct switchClear = { {0,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0,0,0,0,0,0}, 'F', 0, FALSE, "" };
+const switchStruct switchClear = { {0,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0,0,0,0,0,0}, 'F', 0, FALSE};
 
 switchStruct ds2406[maxSwitches] =
 {
-  { {0,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0,0,0,0,0,0}, 'F', 0, FALSE, "" },
-  { {0,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0,0,0,0,0,0}, 'F', 0, FALSE, "" }
+  { {0,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0,0,0,0,0,0}, 'F', 0, FALSE},
+  { {0,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0,0,0,0,0,0}, 'F', 0, FALSE}
 };
 
 OneWire ds(oneWireAddress);  // on pin 2 (a 4.7K resistor is necessary)

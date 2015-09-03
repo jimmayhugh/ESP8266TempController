@@ -309,6 +309,15 @@ void processUDP(void)
       break;
     }
 
+    case 'V':
+    {
+      sprintf(packetBuffer, "%d, %d, %d, %d, %d, %d", 
+              upperF, upperC, ds2406[upper].switchDelay,
+              lowerF, lowerC, ds2406[lower].switchDelay
+              );
+      break;
+    }
+    
     default:
     {
       packetCnt = sprintf(packetBuffer, "%d, %d, %c, %c, %s", ds18b20.tempCelsius, ds18b20.tempFahrenheit,

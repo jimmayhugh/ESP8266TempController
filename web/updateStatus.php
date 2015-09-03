@@ -28,13 +28,26 @@
     $tempStr =
     "<div id=\"temp\"; position: relative; width: 100%>
        <td align=\"center\" width=\"20%\">
+         <form method=\"post\" action=\"modifySettings.php\">
+           <input type=\"hidden\" name=\"ip_address\" value=\"".$ip_Address."\">
+           <input type=\"hidden\" name=\"udp_port\" value=\"".$udp_Port."\">
+           <input type=\"hidden\" name=\"device_name\" value=\"".$udpType[4]."\">
+           <input type=\"hidden\" name=\"temptype\" value=\"tempc\">
+           <input type=\"submit\" value=\"MODIFY\">
+         </form>
          <font size=\"10\"><strong>".$udpType[4]."</strong></font><br />
+         <form method=\"post\" action=\"SensorStatus.php\">
+           <input type=\"hidden\" name=\"ip_address\" value=\"".$ip_Address."\">
+           <input type=\"hidden\" name=\"udp_port\" value=\"".$udp_Port."\">
+           <input type=\"submit\" name=\"remove\" value=\"REMOVE\">
+         </form>
         </td>
        <td align=\"center\" width=\"20%\">
          Temperature
          <br />
          <form method=\"post\" action=\"plotData.php\">
            <input type=\"hidden\" name=\"ip_address\" value=\"".$ip_Address."\">
+           <input type=\"hidden\" name=\"udp_port\" value=\"".$udp_Port."\">
            <input type=\"hidden\" name=\"device_name\" value=\"".$udpType[4]."\">
            <input type=\"hidden\" name=\"temptype\" value=\"tempc\">
            <input type=\"submit\" value=\"GRAPH\">

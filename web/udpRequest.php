@@ -17,10 +17,10 @@ $setDomain          = "N";
 //$                 = "P";
 //$                 = "Q";
 $startStatusUpdate  = "R";
-$updateChipName     = "S";
+$setAutoTemp        = "S";
 //$                 = "T";
 //$                 = "U";
-//$                 = "V";
+$getMode            = "V";
 //$                 = "W";
 //$                 = "X";
 //$                 = "Y";
@@ -45,6 +45,8 @@ error_reporting(E_ALL);
 
 function udpRequest($ip_Address, $udp_Port, $in)
 {
+
+//echo "udpRequest($ip_Address, $udp_Port, $in)<br />";
 
 $myPID = getmypid();
 

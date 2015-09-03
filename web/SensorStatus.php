@@ -2,7 +2,41 @@
 <html>
 <head>
 <?php
-  include("udpRequest.php");
+  include("/var/www/htdocs/esp8266/udpRequest.php");
+  include_once("/var/www/htdocs/esp8266/accessDatabase.php");
+
+  if(isset($_POST["device_address"]) && isset($_POST["device_port"]) && isset($_POST["submit"]))
+  {
+    $deviceAddress = $_POST["device_address"];
+    $devicePort = $_POST["device_port"];
+    
+    $queryStr = "INSERT INTO Addresses SET ipAddress='".$deviceAddress."', udpPort=".$devicePort;
+
+    echo "\$queryStr = $queryStr<br />";
+    
+    if(mysqli_query($link, $queryStr))
+    {
+    }else{
+      echo "Error: " . $queryStr . "<br>" . mysqli_error($link);
+    }
+  }
+
+  if(isset($_POST["ip_address"]) && isset($_POST["udp_port"]) && isset($_POST["remove"]))
+  {
+    $deviceAddress = $_POST["ip_address"];
+    $devicePort = $_POST["udp_port"];
+    
+    $queryStr = "DELETE FROM `Addresses` WHERE ipAddress='".$deviceAddress."'AND udpPort=".$devicePort;
+
+    echo "\$queryStr = $queryStr<br />";
+    
+    if(mysqli_query($link, $queryStr))
+    {
+    }else{
+      echo "Error: " . $queryStr . "<br>" . mysqli_error($link);
+    }
+  }
+
     $headStr = "
       <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">
       <title> ESP8266 1-Wire Temperature / Switch Status </title>
@@ -48,6 +82,15 @@
           </td>
         </tr>
         </table>      
+    </td>
+  </tr>
+  <tr>
+    <td  align="center" colspan="6">
+      <form method="post" action="/esp8266/SensorStatus.php">
+        <strong>New Device IP Address:</strong> <input type="text" name="device_address">
+        <strong>New Device PORT Address:</strong> <input type="text" name="device_port">
+        <input type="submit" name="submit" value="SUBMIT">
+      </form>
     </td>
   </tr>  
   <tr>

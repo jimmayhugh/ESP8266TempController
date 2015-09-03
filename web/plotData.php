@@ -9,7 +9,7 @@
     $ip_address=$_GET["ip_address"];
     $deviceName=$_GET["device_name"];
     $tempType=$_GET["temptype"];
-//      echo "updateStatus.php: netID = $netID, service_port = $service_port, port_address = $port_address, netName = $netName <br />";
+//      echo "updateStatus.php: \$ip_address = $ip_address, \$deviceName = $deviceName,  \$tempType=$tempType<br />";
   }
   
   if(isset($_POST["ip_address"])) 
@@ -17,7 +17,7 @@
     $ip_address=$_POST["ip_address"];
     $deviceName=$_POST["device_name"];
     $tempType=$_POST["temptype"];
-//      echo "updateStatus.php: netID = $netID, service_port = $service_port, port_address = $port_address, netName = $netName <br />";
+//      echo "updateStatus.php: \$ip_address = $ip_address, \$deviceName = $deviceName,  \$tempType=$tempType<br />";
   }
   
 
@@ -216,7 +216,10 @@ input:focus, textarea:focus{background-color: lightgrey;}
           <form method="post" action="plotData.php">
             <?php
               $formStr =
-                "<input type=\"hidden\" name=\"ip_address\" value=\"".$ip_address."\">";
+                "<input type=\"hidden\" name=\"ip_address\" value=\"".$ip_address."\">
+                 <input type=\"hidden\" name=\"device_name\" value=\"".$deviceName."\">
+                 <input type=\"hidden\" name=\"temptype\" value=\"".$tempType."\">"
+                ;
                 echo $formStr;   
              ?>
             Go Back: <input type="text" size="4" maxsize="4" name="cntBack">
@@ -237,7 +240,10 @@ input:focus, textarea:focus{background-color: lightgrey;}
                 <form method="post" action="plotData.php">
                   <?php
                     $formStr =
-                      "<input type=\"hidden\" name=\"ip_address\" value=\"".$ip_address."\">";
+                      "<input type=\"hidden\" name=\"ip_address\" value=\"".$ip_address."\">
+                       <input type=\"hidden\" name=\"device_name\" value=\"".$deviceName."\">
+                       <input type=\"hidden\" name=\"temptype\" value=\"".$tempType."\">"
+                      ;
                       echo $formStr;   
                    ?>
                   <input type="hidden" name="cntBetween" value="cntBetween">
