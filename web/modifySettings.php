@@ -233,7 +233,7 @@
         $tempuStr
       </td>
       <td align=\"center\">
-        Upper Delay<br /><input type=\"text\" name=\"upperDelay\" value=\"$upperDelay\">  
+        Upper Delay (Seconds)<br /><input type=\"text\" name=\"upperDelay\" value=\"$upperDelay\">  
       </td>
     </tr>
     <tr>
@@ -244,7 +244,7 @@
         $templStr
       </td>
       <td align=\"center\">
-        Lower Delay<br /><input type=\"text\" name=\"lowerDelay\" value=\"$lowerDelay\">  
+        Lower Delay (Seconds)<br /><input type=\"text\" name=\"lowerDelay\" value=\"$lowerDelay\">  
       </td>
     </tr>
     <tr>  
